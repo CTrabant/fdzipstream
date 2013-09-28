@@ -27,21 +27,25 @@ ZIP archive file/entry modifiation times are stored in UTC.
 ## Usage pattern
 
 ### Creating a ZIP archive when entire files/entries are in memory:
-> zs_init ()
->   for each entry:
->     zs_writeentry ()
-> zs_finish ()
-> zs_free ()
+```
+zs_init ()
+  for each entry:
+    zs_writeentry ()
+zs_finish ()
+zs_free ()
+```
 
 ### Creating a ZIP archive when files/entries are chunked:
-> zs_init ()
->   for each entry:
->     zs_entrybegin ()
->       for each chunk of entry:
->         zs_entrydata()
->     zs_entryend()
-> zs_finish ()
-> zs_free ()
+```
+zs_init ()
+  for each entry:
+    zs_entrybegin ()
+      for each chunk of entry:
+        zs_entrydata()
+    zs_entryend()
+zs_finish ()
+zs_free ()
+```
 
 ## Why?
 
