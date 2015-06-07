@@ -1,4 +1,4 @@
-2013.9.28: 0.1
+2013.9.28: 1.0
 	- Initial version.  Supports classic ZIP archive creation, files/entries
 	with streaming structures (data can be chunked) and ZIP64 Central
 	Directory structures for archives totalling more then 4GB in size.

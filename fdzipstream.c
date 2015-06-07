@@ -47,7 +47,7 @@
  *
  * Written by CTrabant
  *
- * Modified 2013.9.28
+ * Modified 2015.6.6
  ***************************************************************************/
 /* Allow this code to be skipped by declaring NOFDZIP */
 #ifndef NOFDZIP
@@ -487,9 +487,9 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int method,
  * stream according to the parameters already set for the stream and
  * entry.
  *
- * If the call contains the final data for this entry, the flush
+ * If the call contains the final data for this entry, the final
  * argument should be set to true (1) to flush internal buffers.  If
- * more data is expected for this stream, the flush argument should be
+ * more data is expected for this stream, the final argument should be
  * false (0).
  *
  * If specified, writestatus will be set to the output of write() when
