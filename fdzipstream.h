@@ -2,7 +2,7 @@
 /* Allow this code to be skipped by declaring NOFDZIP */
 #ifndef NOFDZIP
 
-/* Version: 2013.9.22 */
+/* Version: 2015.7.27 */
 
 #ifndef FDZIPSTREAM_H
 #define FDZIPSTREAM_H
@@ -87,6 +87,8 @@ extern ZIPentry * zs_entrybegin ( ZIPstream *zstream, char *name,
 extern ZIPentry * zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry,
 				 unsigned char *entry, int64_t entrysize,
 				 int final, ssize_t *writestatus );
+
+extern ZIPentry * zs_entryflush ( ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus );
 
 extern ZIPentry * zs_entryend ( ZIPstream *zstream, ZIPentry *zentry,
 				ssize_t *writestatus);

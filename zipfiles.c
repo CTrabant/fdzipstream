@@ -7,7 +7,21 @@
  * Compile with:
  *   cc -Wall fdzipstream.c zipfiles.c -o zipfiles -lz
  *
- * modified 2013.9.28
+ * Copyright 2015 CTrabant
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * modified 2015.8.2
  ***************************************************************************/
 
 #include <stdio.h>
@@ -34,7 +48,6 @@ int main (int argc, char *argv[])
   int method = ZS_DEFLATE;
   int streaming = 0;
   int fd;
-  int final = 0;
   int idx;
 
   FILE *input;
@@ -175,20 +188,26 @@ int main (int argc, char *argv[])
 	  
 	  /* Read file into buffer */
 	  readcount = 0;
-	  while ( readcount < st.st_size )
+	  while ( ! feof (input) )
 	    {
 	      readsize = fread (buffer, 1, bufferlength, input);
 	      readcount += readsize;
 	      
-	      final = ( readcount >= st.st_size ) ? 1 : 0; 
-	      
 	      /* Add data to ZIP entry */
-	      if ( ! zs_entrydata (zstream, zentry, buffer, readsize, final, &writestatus) )
+	      if ( ! zs_entrydata (zstream, zentry, buffer, readsize, 0, &writestatus) )
 		{
 		  fprintf (stderr, "Error adding entry data to ZIP for %s (writestatus: %lld)\n",
 			   argv[idx], (long long int) writestatus);
 		  return 1;
 		}
+	    }
+	  
+	  /* Flush entry data */
+	  if ( ! zs_entryflush (zstream, zentry, &writestatus) )
+	    {
+	      fprintf (stderr, "Error adding entry data to ZIP for %s (writestatus: %lld)\n",
+		       argv[idx], (long long int) writestatus);
+	      return 1;
 	    }
 	  
 	  /* End ZIP entry */

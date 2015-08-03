@@ -42,6 +42,7 @@ zs_init ()
     zs_entrybegin ()
       for each chunk of entry:
         zs_entrydata()
+    zs_entryflush()  [if final not flagged in zs_entrydata()]
     zs_entryend()
 zs_finish ()
 zs_free ()

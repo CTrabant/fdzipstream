@@ -23,7 +23,7 @@
  * - Allow archiving of individual files/entries larger than 4GB, the total
  *    of all files can be larger than 4GB but not individual entries.
  * - Allow every possible compression method.
- * 
+ *
  * ZIP archive file/entry modifiation times are stored in UTC.
  *
  * Usage pattern
@@ -41,18 +41,34 @@
  *      zs_entrybegin ()
  *        for each chunk of entry:
  *          zs_entrydata()
+ *      zs_entryflush()
  *      zs_entryend()
  *  zs_finish ()
  *  zs_free ()
  *
- * Written by CTrabant
+ * LICENSE
  *
- * Modified 2015.6.6
+ * Copyright 2015 CTrabant
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Modified 2015.8.2
  ***************************************************************************/
+
 /* Allow this code to be skipped by declaring NOFDZIP */
 #ifndef NOFDZIP
 
-#define FDZIPVERSION 1.0
+#define FDZIPVERSION 1.1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,9 +86,6 @@
 static int64_t zs_writedata ( ZIPstream *zstream,
 			      unsigned char *writeentry,
 			      int64_t writesize );
-static int64_t zs_deflatedata ( ZIPstream *zstream, ZIPentry *zentry, int flush,
-				unsigned char *input, int64_t intputsize,
-				unsigned char *output, int64_t outputsize );
 static uint32_t zs_datetime_unixtodos ( time_t t );
 static void zs_htolx ( void *data, int size );
 
@@ -194,9 +207,12 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
   ZIPentry *zentry;
   unsigned char *writeentry = NULL;
   int64_t writesize = 0;
+  int64_t writetotal = 0;
+  int64_t avail_out = 0;
   int64_t lwritestatus;
-  int packed;
   uint32_t u32;
+  int packed;
+  int rv;
   
   if ( writestatus )
     *writestatus = 0;
@@ -283,16 +299,31 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
 	  return NULL;
 	}
       
-      /* Compress entry data */
-      writesize = zs_deflatedata (zstream, zentry, 1, entry, entrysize, writeentry, writesize);
+      /* Input buffer */
+      zentry->zlstream.next_in = entry;
+      zentry->zlstream.avail_in = entrysize;
       
-      if ( writesize < 0 )
+      /* Deflate all input data into writeentry buffer */
+      while ( zentry->zlstream.avail_in > 0 )
 	{
-	  fprintf (stderr, "zs_writeentry: Error deflating data\n");
-	  return NULL;
+	  /* Output buffer */
+	  zentry->zlstream.next_out = writeentry + writetotal;
+	  avail_out = writesize - writetotal;
+	  zentry->zlstream.avail_out = avail_out;
+	  
+	  rv = deflate (&zentry->zlstream, Z_FINISH);
+	  
+	  if ( rv != Z_OK && rv != Z_STREAM_END )
+	    {
+	      fprintf (stderr, "zs_writeentry: Error with deflate(): %d\n", rv);
+	      return NULL;
+	    }
+	  
+	  writetotal += avail_out - zentry->zlstream.avail_out;
 	}
       
-      zentry->CompressedSize = writesize;
+      writesize = writetotal;
+      zentry->CompressedSize = writetotal;
       zentry->UncompressedSize = entrysize;
       
       deflateEnd (&zentry->zlstream);
@@ -325,7 +356,7 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
       fprintf (stderr, "Error writing ZIP local header: %s\n", strerror(errno));
       
       if ( writestatus )
-	*writestatus = lwritestatus;
+	*writestatus = (ssize_t)lwritestatus;
       
       return NULL;
     }
@@ -490,7 +521,8 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int method,
  * If the call contains the final data for this entry, the final
  * argument should be set to true (1) to flush internal buffers.  If
  * more data is expected for this stream, the final argument should be
- * false (0).
+ * false (0).  Alternatively, internal buffers will be flushed if
+ * entry is NULL and entrysize is 0.
  *
  * If specified, writestatus will be set to the output of write() when
  * a write error occurs, otherwise it will be set to 0.
@@ -502,11 +534,9 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
 	       int64_t entrysize, int final, ssize_t *writestatus )
 {
   unsigned char *writeentry = NULL;
-  int64_t inputcount = 0;
   int64_t writesize = 0;
   int64_t lwritestatus;
-  int deflatechunk;
-  int flush;
+  int rv;
   
   if ( writestatus )
     *writestatus = 0;
@@ -514,11 +544,16 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
   if ( ! zstream | ! zentry )
     return NULL;
   
+  /* Implied data flush */
+  if ( entry == NULL && entrysize == 0 )
+    final = 1;
+  
   /* Calculate, or continue calculation of, CRC32 */
-  zentry->CRC32 = crc32 (zentry->CRC32, (unsigned char *)entry, entrysize);
+  if ( entry )
+    zentry->CRC32 = crc32 (zentry->CRC32, (unsigned char *)entry, entrysize);
   
   /* Process entry data depending on method */
-  if ( zentry->CompressionMethod == ZS_STORE )
+  if ( entry && zentry->CompressionMethod == ZS_STORE )
     {
       writeentry = entry;
       writesize = entrysize;
@@ -541,27 +576,26 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
     }
   else if ( zentry->CompressionMethod == ZS_DEFLATE )
     {
-      while ( inputcount < entrysize )
+      /* Input buffer */
+      zentry->zlstream.next_in = entry;
+      zentry->zlstream.avail_in = entrysize;
+      
+      /* Deflate all input data and write compressed output data */
+      while ( zentry->zlstream.avail_in > 0 )
 	{
-	  /* Determine input chunk size, maximum is 80% of buffer size */
-	  deflatechunk = ((entrysize - inputcount) > (int)(ZS_BUFFER_SIZE * 0.8)) ?
-	    (int)(ZS_BUFFER_SIZE * 0.8) : (entrysize - inputcount);
+	  zentry->zlstream.next_out = zstream->buffer;
+	  zentry->zlstream.avail_out = ZS_BUFFER_SIZE;
 	  
-	  writeentry = entry + inputcount;
+	  rv = deflate (&zentry->zlstream, Z_NO_FLUSH);
 	  
-	  flush = ( final && (inputcount + deflatechunk) >= entrysize ) ? 1 : 0;
-	  
-	  /* Compress entry chunk */
-	  writesize = zs_deflatedata (zstream, zentry, flush, writeentry, deflatechunk,
-				      zstream->buffer, ZS_BUFFER_SIZE);
-	  
-	  if ( writesize < 0 )
+	  if ( rv != Z_OK )
 	    {
-	      fprintf (stderr, "zs_entrydata: Error deflating data\n");
+	      fprintf (stderr, "zs_entrydata: Error with no flush deflate(): %d\n", rv);
 	      return NULL;
 	    }
 	  
-	  /* Write entry data */
+	  writesize = ZS_BUFFER_SIZE - zentry->zlstream.avail_out;
+	  
 	  lwritestatus = zs_writedata (zstream, zstream->buffer, writesize);
 	  if ( lwritestatus != writesize )
 	    {
@@ -575,13 +609,66 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
 	    }
 	  
 	  zentry->CompressedSize += writesize;
-	  zentry->UncompressedSize += deflatechunk;
-	  inputcount += deflatechunk;
+	}
+      
+      zentry->UncompressedSize += entrysize;
+      
+      /* Flush buffered compressed data */
+      if ( final )
+	{
+	  rv = Z_OK;
+	  while ( rv == Z_OK )
+	    {
+	      zentry->zlstream.next_out = zstream->buffer;
+	      zentry->zlstream.avail_out = ZS_BUFFER_SIZE;
+	      
+	      rv = deflate (&zentry->zlstream, Z_FINISH);
+	      
+	      if ( rv != Z_OK && rv != Z_STREAM_END )
+		{
+		  fprintf (stderr, "zs_entrydata: Error with flushing deflate(): %d\n", rv);
+		  return NULL;
+		}
+	      
+	      writesize = ZS_BUFFER_SIZE - zentry->zlstream.avail_out;
+	      
+	      lwritestatus = zs_writedata (zstream, zstream->buffer, writesize);
+	      if ( lwritestatus != writesize )
+		{
+		  fprintf (stderr, "Error writing ZIP entry data (%d): %s\n",
+			   zstream->fd, strerror(errno));
+		  
+		  if ( writestatus )
+		    *writestatus = (ssize_t)lwritestatus;
+		  
+		  return NULL;
+		}
+	      
+	      zentry->CompressedSize += writesize;
+	    }
 	}
     }
   
   return zentry;
 }  /* End of zs_entrydata() */
+
+
+/***************************************************************************
+ * zs_entryflush:
+ *
+ * Flush any buffered data for a streaming entry.  This is a simple
+ * wrapper for zs_entrydata() directing a flush.
+ *
+ * If specified, writestatus will be set to the output of write() when
+ * a write error occurs, otherwise it will be set to 0.
+ *
+ * Return pointer to ZIPentry on success and NULL on error.
+ ***************************************************************************/
+ZIPentry *
+zs_entryflush ( ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus)
+{
+  return zs_entrydata (zstream, zentry, NULL, 0, 1, writestatus);
+}  /* End of zs_entryflush() */
 
 
 /***************************************************************************
@@ -625,7 +712,7 @@ zs_entryend ( ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus)
       fprintf (stderr, "Error writing streaming ZIP data description: %s\n", strerror(errno));
       
       if ( writestatus )
-	*writestatus = (ssize_t) lwritestatus;
+	*writestatus = (ssize_t)lwritestatus;
       
       return NULL;
     }
@@ -709,7 +796,7 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
 	  fprintf (stderr, "Error writing ZIP central directory header: %s\n", strerror(errno));
 	  
 	  if ( writestatus )
-	    *writestatus = (ssize_t) lwritestatus;
+	    *writestatus = (ssize_t)lwritestatus;
 	  
 	  return -1;
 	}
@@ -745,7 +832,7 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
 	  fprintf (stderr, "Error writing ZIP64 end of central directory record: %s\n", strerror(errno));
 	  
 	  if ( writestatus )
-	    *writestatus = (ssize_t) lwritestatus;
+	    *writestatus = (ssize_t)lwritestatus;
 	  
 	  return -1;
 	}
@@ -763,7 +850,7 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
 	  fprintf (stderr, "Error writing ZIP64 end of central directory locator: %s\n", strerror(errno));
 	  
 	  if ( writestatus )
-	    *writestatus = (ssize_t) lwritestatus;
+	    *writestatus = (ssize_t)lwritestatus;
 	  
 	  return -1;
 	}
@@ -787,7 +874,7 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
       fprintf (stderr, "Error writing end of central directory record: %s\n", strerror(errno));
       
       if ( writestatus )
-	*writestatus = (ssize_t) lwritestatus;
+	*writestatus = (ssize_t)lwritestatus;
       
       return -1;
     }
@@ -821,7 +908,7 @@ zs_writedata ( ZIPstream *zstream, unsigned char *writeentry,
   written = 0;
   while ( written < writesize )
     {
-      writelen = ( (writesize - written) > ZS_WRITE_SIZE ) ? 
+      writelen = ( (writesize - written) > ZS_WRITE_SIZE ) ?
 	ZS_WRITE_SIZE : (writesize - written);
       
       lwritestatus = write (zstream->fd, writeentry+written, writelen);
@@ -829,101 +916,14 @@ zs_writedata ( ZIPstream *zstream, unsigned char *writeentry,
       if ( lwritestatus != writelen )
 	{
 	  return lwritestatus;
- 	}
+	}
       
-      zstream->WriteOffset += writelen;      
+      zstream->WriteOffset += writelen;
       written += writelen;
     }
   
   return written;
 }  /* End of zs_writedata() */
-
-
-/***************************************************************************
- * zs_deflatedata:
- *
- * Compress (deflate) input data and write to output buffer.  The zlib
- * stream at zentry.zlstream must already be initilized with
- * deflateInit() or deflateInit2().
- *
- * If the call contains the final data for this stream, the flush
- * argument should be set to true (1) causing the zlib stream to be
- * flushed with the Z_FINISH flag.  If more data is expected for this
- * stream, the flush argument should be false (0).
- *
- * If the input size is greater than ZS_WRITE_SIZE, feed the deflate()
- * call with chunks of input ZS_WRITE_SIZE until complete.
- *
- * Return number of bytes written to output buffer on success and -1
- * on error.
- ***************************************************************************/
-static int64_t
-zs_deflatedata ( ZIPstream *zstream, ZIPentry *zentry, int flush,
-		 unsigned char *input, int64_t inputsize,
-		 unsigned char *output, int64_t outputsize )
-{
-  int64_t inputcount = 0;
-  int64_t outputcount = 0;
-  int deflatelength;
-  int compresslength;
-  int rv = Z_OK;
-  int flushflag;
-  
-  if ( ! zstream || ! zentry || ! input || ! output)
-    return -1;
-  
-  while ( inputcount < inputsize )
-    {
-      /* Determine input deflate length, maximum ZS_WRITE_SIZE */
-      deflatelength = ((inputsize - inputcount) > ZS_WRITE_SIZE) ?
-	ZS_WRITE_SIZE : (inputsize - inputcount);
-      
-      /* Input data */
-      zentry->zlstream.next_in = input + inputcount;
-      zentry->zlstream.avail_in = deflatelength;
-      
-      flushflag = ( flush && (inputcount + deflatelength) >= inputsize ) ? Z_FINISH : Z_NO_FLUSH;
-      
-      do
-	{
-	  /* Output buffer, allow up to ZS_WRITE_SIZE per call */
-	  zentry->zlstream.next_out = output + outputcount;
-	  compresslength = ((outputsize - outputcount) > ZS_WRITE_SIZE) ?
-	    ZS_WRITE_SIZE : (outputsize - outputcount);
-	  zentry->zlstream.avail_out = compresslength;
-	  
-	  if ( compresslength <= 0 )
-	    {
-	      fprintf (stderr, "zs_deflatedata: Output buffer not large enough for %s\n",
-		       zentry->Name);
-	      return -1;
-	    }
-	  
-	  rv = deflate (&zentry->zlstream, flushflag);
-	  
-	  if ( rv == Z_STREAM_ERROR )
-	    {
-	      fprintf (stderr, "zs_deflatedata: Error in deflate() for entry: %s\n",
-		       zentry->Name);
-	      return -1;
-	    }
-	  
-	  outputcount += compresslength - zentry->zlstream.avail_out;
-	  
-	} while ( zentry->zlstream.avail_out == 0 );
-      
-      inputcount += deflatelength;
-    }
-  
-  if ( (flush && rv != Z_STREAM_END) ||
-       (! flush && rv != Z_OK) )
-    {
-      fprintf (stderr, "zs_deflatedata: Error with deflate(): %d\n", rv);
-      return -1;
-    }
-  
-  return outputcount;
-}  /* End of zs_deflatedata() */
 
 
 /* DOS time start date is January 1, 1980 */
@@ -942,9 +942,9 @@ zs_deflatedata ( ZIPstream *zstream, ZIPentry *zentry, int flush,
 static uint32_t
 zs_datetime_unixtodos ( time_t t )
 {
-  struct tm s;         
+  struct tm s;
   
-  if ( gmtime_r (&t, &s) == NULL ) 
+  if ( gmtime_r (&t, &s) == NULL )
     return 0;
   
   s.tm_year += 1900;
