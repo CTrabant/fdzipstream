@@ -1,8 +1,10 @@
-2015.8.2:
+2015.8.2: 1.1
 	- Rework deflate() logic for flexibility and simplicity.
 	- Add zs_entryflush() as a simple wrapper to flush internal compression
 	buffers without new data.  Thanks to @Crog for reporting and suggesting.
 	- Update zipfiles.c example code to use new zs_entryflush().
+	- Allow retry of write() in zs_writedata() for incomplete writes as
+	suggested by @Crog.
 	- Add Apache 2 licensing notices.
 
 2013.9.28: 1.0

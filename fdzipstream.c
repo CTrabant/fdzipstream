@@ -913,13 +913,13 @@ zs_writedata ( ZIPstream *zstream, unsigned char *writeentry,
       
       lwritestatus = write (zstream->fd, writeentry+written, writelen);
       
-      if ( lwritestatus != writelen )
+      if ( lwritestatus <= 0 )
 	{
 	  return lwritestatus;
 	}
       
-      zstream->WriteOffset += writelen;
-      written += writelen;
+      zstream->WriteOffset += lwritestatus;
+      written += lwritestatus;
     }
   
   return written;
