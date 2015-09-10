@@ -184,8 +184,8 @@ static void packuint64 (ZIPstream *ZS, int *O, uint64_t V)
 /* Function prototypes for zip storage method
  * TODO: define these better, have simply been extracted form .c code if-else statements */
 typedef int32_t (*ZIPfnEntryBegin)( ZIPentry *zentry );
-typedef int32_t (*ZIPfnEntryWrite)( ZIPentry *zentry, unsigned char *entry, int64_t entrysize, unsigned char** writebuffer, int64_t* writebuffersize );
-typedef int32_t (*ZIPfnEntryData)( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry, int64_t entrysize, int final, ssize_t *writestatus );
+typedef int32_t (*ZIPfnGetWriteBuffer)( ZIPentry *zentry, unsigned char *entry, int64_t entrysize, unsigned char** writebuffer, int64_t* writebuffersize );
+typedef int32_t (*ZIPfnWriteEntryData)( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry, int64_t entrysize, int final, ssize_t *writestatus );
 typedef int32_t (*ZIPfnEntryEnd)( ZIPentry *zentry );
 
 /* Implementation functions for the CompressionMethod that has been selected
@@ -193,8 +193,8 @@ typedef int32_t (*ZIPfnEntryEnd)( ZIPentry *zentry );
 typedef struct zipimpl_s
 {
 	ZIPfnEntryBegin entrybegin;
-	ZIPfnEntryWrite getwritebuffer;
-	ZIPfnEntryData entrydata;
+	ZIPfnGetWriteBuffer getwritebuffer;
+	ZIPfnWriteEntryData writeentrydata;
 	ZIPfnEntryEnd entryend;
 } ZIPimpl;
 
@@ -225,7 +225,7 @@ static int32_t zs_store_entryend( ZIPentry *zentry )
 	return 1;
 }
 
-static int32_t zs_store_entrydata(ZIPstream *zstream, ZIPentry *zentry, unsigned char *writebuffer,
+static int32_t zs_store_writeentrydata(ZIPstream *zstream, ZIPentry *zentry, unsigned char *writebuffer,
 		int64_t writebuffersize, int final, ssize_t *writestatus )
 {
 	/* Write entry data */
@@ -318,7 +318,7 @@ static int32_t zs_deflate_getwritebuffer( ZIPentry *zentry, unsigned char *entry
 	return 1;
 }
 
-static int32_t zs_deflate_entrydata( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
+static int32_t zs_deflate_writeentrydata( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
 		int64_t entrysize, int final, ssize_t *writestatus )
 {
 	ZIPdeflateimpl* impl = (ZIPdeflateimpl*)zentry->impl;
@@ -439,8 +439,8 @@ static int32_t zs_deflate_entryend( ZIPentry *zentry )
 }
 
 /* Standard implementations */
-ZIPimpl storeImpl = { zs_store_entrybegin, zs_store_getwritebuffer, zs_store_entrydata, zs_store_entryend };
-ZIPdeflateimpl deflateImpl = { {zs_deflate_entrybegin, zs_deflate_getwritebuffer, zs_deflate_entrydata, zs_deflate_entryend} };
+ZIPimpl storeImpl = { zs_store_entrybegin, zs_store_getwritebuffer, zs_store_writeentrydata, zs_store_entryend };
+ZIPdeflateimpl deflateImpl = { {zs_deflate_entrybegin, zs_deflate_getwritebuffer, zs_deflate_writeentrydata, zs_deflate_entryend} };
 
 /* Finds the implementation for a storage method (i.e. Deflate/Store)
  * @param      method     ZS_STORE or ZS_DEFLATE
@@ -678,7 +678,7 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
 	}
 
 	/* Process entry data depending on method */
-	if ( !zentry->impl->entrydata( zstream, zentry, entry, entrysize, final, writestatus ) )
+	if ( !zentry->impl->writeentrydata( zstream, zentry, entry, entrysize, final, writestatus ) )
 		return NULL;
 
 	return zentry;
