@@ -10,6 +10,7 @@
 
 #include <zlib.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +45,7 @@ extern "C" {
 /* Maximum length of file/entry name including NULL terminator */
 #define ZENTRY_NAME_LENGTH 256
 
+
 /* ZIP archive entry */
 typedef struct zipentry_s
 {
@@ -58,6 +60,7 @@ typedef struct zipentry_s
   uint16_t NameLength;
   char Name[ZENTRY_NAME_LENGTH];
   z_stream zlstream;
+  const struct zipimpl_s* impl;
   struct zipentry_s *next;
 } ZIPentry;
 
