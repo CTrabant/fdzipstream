@@ -22,7 +22,7 @@
  * - Support advanced ZIP archive features (e.g. file attributes).
  * - Allow archiving of individual files/entries larger than 4GB, the total
  *    of all files can be larger than 4GB but not individual entries.
- * - Allow every possible compression method.
+ * - Allow every possible compression methodId.
  *
  * ZIP archive file/entry modifiation times are stored in UTC.
  *
@@ -74,12 +74,15 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <time.h>
 #include <errno.h>
 
 #include <zlib.h>
 
 #include "fdzipstream.h"
+
+#if FDZIPSTREAM_REGISTEREXTENSIONS
+#include "fdzipstream_extensions.h"
+#endif
 
 #define BIT_SET(a,b) ((a) |= (1<<(b)))
 
@@ -88,77 +91,6 @@ static int64_t zs_writedata ( ZIPstream *zstream,
 		int64_t writebuffersize );
 static uint32_t zs_datetime_unixtodos ( time_t t );
 static void zs_htolx ( void *data, int size );
-
-
-/***************************************************************************
- * zs_init:
- *
- * Initialize and return an ZIPstream struct. If a pointer to an
- * existing ZIPstream is supplied it will be re-initizlied, otherwise
- * memory will be allocated.
- *
- * Returns a pointer to a ZIPstream struct on success or NULL on error.
- ***************************************************************************/
-ZIPstream *
-zs_init ( int fd, ZIPstream *zs )
-{
-	ZIPentry *zentry, *tofree;
-
-	if ( ! zs )
-	{
-		zs = (ZIPstream *) malloc (sizeof(ZIPstream));
-	}
-	else
-	{
-		zentry = zs->FirstEntry;
-		while ( zentry )
-		{
-			tofree = zentry;
-			zentry = zentry->next;
-			free (tofree);
-		}
-	}
-
-	if ( zs == NULL )
-	{
-		fprintf (stderr, "zs_init: Cannot allocate memory\n");
-		return NULL;
-	}
-
-	memset (zs, 0, sizeof (ZIPstream));
-
-	zs->fd = fd;
-
-	return zs;
-}  /* End of zs_init() */
-
-
-/***************************************************************************
- * zs_free:
- *
- * Free all memory associated with a ZIPstream including all ZIPentry
- * structures.
- ***************************************************************************/
-void
-zs_free ( ZIPstream *zs )
-{
-	ZIPentry *zentry, *tofree;
-
-	if ( ! zs )
-		return;
-
-	zentry = zs->FirstEntry;
-	while ( zentry )
-	{
-		tofree = zentry;
-		zentry = zentry->next;
-		free (tofree);
-	}
-
-	free (zs);
-
-}  /* End of zs_free() */
-
 
 /* Helper functions to write little-endian integer values to a
  * specified offset in the ZIPstream buffer and increment offset. */
@@ -180,29 +112,6 @@ static void packuint64 (ZIPstream *ZS, int *O, uint64_t V)
 	zs_htolx(ZS->buffer+*O, 8);
 	*O += 8;
 }
-
-/* Function prototypes for zip storage method
- * TODO: define these better, have simply been extracted form .c code if-else statements */
-typedef int32_t (*ZIPfnEntryBegin)( ZIPentry *zentry );
-typedef int32_t (*ZIPfnGetWriteBuffer)( ZIPentry *zentry, unsigned char *entry, int64_t entrysize, unsigned char** writebuffer, int64_t* writebuffersize );
-typedef int32_t (*ZIPfnWriteEntryData)( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry, int64_t entrysize, int final, ssize_t *writestatus );
-typedef int32_t (*ZIPfnEntryEnd)( ZIPentry *zentry );
-
-/* Implementation functions for the CompressionMethod that has been selected
- */
-typedef struct zipimpl_s
-{
-	ZIPfnEntryBegin entrybegin;
-	ZIPfnGetWriteBuffer getwritebuffer;
-	ZIPfnWriteEntryData writeentrydata;
-	ZIPfnEntryEnd entryend;
-} ZIPimpl;
-
-typedef struct zipdeflateimpl_s
-{
-	ZIPimpl impl;
-	z_stream zlstream;
-} ZIPdeflateimpl;
 
 static int32_t zs_store_entrybegin( ZIPentry *zentry )
 {
@@ -247,12 +156,19 @@ static int32_t zs_store_writeentrydata(ZIPstream *zstream, ZIPentry *zentry, uns
 	return 1;
 }
 
+/* Deflate implementation adds z_stream */
+typedef struct zipdeflateimpl_s
+{
+	ZIPmethod method; //< Base
+	z_stream zlstream;
+} ZIPdeflateimpl;
+
 static int32_t zs_deflate_entrybegin( ZIPentry *zentry )
 {
 	zentry->CompressionMethod = ZS_DEFLATE;
 
-	ZIPdeflateimpl* impl = (ZIPdeflateimpl*)zentry->impl;
-	z_stream* zlstream = &(impl->zlstream);
+	ZIPdeflateimpl* method = (ZIPdeflateimpl*)zentry->method;
+	z_stream* zlstream = &(method->zlstream);
 
 	/* Allocate deflate zlib stream state & initialize */
 	zlstream->zalloc = Z_NULL;
@@ -273,8 +189,8 @@ static int32_t zs_deflate_entrybegin( ZIPentry *zentry )
 }
 static int32_t zs_deflate_getwritebuffer( ZIPentry *zentry, unsigned char *entry, int64_t entrysize, unsigned char** writebuffer, int64_t* writebuffersize )
 {
-	ZIPdeflateimpl* impl = (ZIPdeflateimpl*)zentry->impl;
-	z_stream* zlstream = &impl->zlstream;
+	ZIPdeflateimpl* method = (ZIPdeflateimpl*)zentry->method;
+	z_stream* zlstream = &method->zlstream;
 
 	/* Determine maximum size of compressed data and allocate buffer */
 	ssize_t maximumWriteSize = deflateBound (zlstream, entrysize);
@@ -321,8 +237,8 @@ static int32_t zs_deflate_getwritebuffer( ZIPentry *zentry, unsigned char *entry
 static int32_t zs_deflate_writeentrydata( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
 		int64_t entrysize, int final, ssize_t *writestatus )
 {
-	ZIPdeflateimpl* impl = (ZIPdeflateimpl*)zentry->impl;
-	z_stream* zlstream = &impl->zlstream;
+	ZIPdeflateimpl* method = (ZIPdeflateimpl*)zentry->method;
+	z_stream* zlstream = &method->zlstream;
 
 	/* Input buffer */
 	zlstream->next_in = entry;
@@ -399,67 +315,12 @@ static int32_t zs_deflate_writeentrydata( ZIPstream *zstream, ZIPentry *zentry, 
 	return 1;
 }
 
-static int32_t zs_writeheader(  ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus  )
-{
-	/* Write the Local File Header, with zero'd CRC and sizes */
-	int32_t packed = 0;
-	packuint32 (zstream, &packed, LOCALHEADERSIG);              /* Data Description signature */
-	packuint16 (zstream, &packed, 20);                          /* Version needed to extract (2.0) */
-	packuint16 (zstream, &packed, zentry->GeneralFlag);         /* General purpose bit flag */
-	packuint16 (zstream, &packed, zentry->CompressionMethod);   /* Compression method */
-	packuint16 (zstream, &packed, zentry->DOSTime);             /* DOS file modification time */
-	packuint16 (zstream, &packed, zentry->DOSDate);             /* DOS file modification date */
-	packuint32 (zstream, &packed, zentry->CRC32);               /* CRC-32 value of entry */
-	packuint32 (zstream, &packed, zentry->CompressedSize);      /* Compressed entry size */
-	packuint32 (zstream, &packed, zentry->UncompressedSize);    /* Uncompressed entry size */
-	packuint16 (zstream, &packed, zentry->NameLength);          /* File/entry name length */
-	packuint16 (zstream, &packed, 0);                           /* Extra field length */
-	/* File/entry name */
-	memcpy (zstream->buffer+packed, zentry->Name, zentry->NameLength); packed += zentry->NameLength;
-
-	int64_t lwritestatus = zs_writedata (zstream, zstream->buffer, packed);
-	if ( lwritestatus != packed )
-	{
-		fprintf (stderr, "Error writing ZIP local header: %s\n", strerror(errno));
-
-		if ( writestatus )
-			*writestatus = (ssize_t)lwritestatus;
-
-		return NULL;
-	}
-	return 1;
-}
-
 static int32_t zs_deflate_entryend( ZIPentry *zentry )
 {
-	ZIPdeflateimpl* impl = (ZIPdeflateimpl*)zentry->impl;
-	z_stream* zlstream = &impl->zlstream;
+	ZIPdeflateimpl* method = (ZIPdeflateimpl*)zentry->method;
+	z_stream* zlstream = &method->zlstream;
 	deflateEnd (zlstream);
 	return 1;
-}
-
-/* Standard implementations */
-ZIPimpl storeImpl = { zs_store_entrybegin, zs_store_getwritebuffer, zs_store_writeentrydata, zs_store_entryend };
-ZIPdeflateimpl deflateImpl = { {zs_deflate_entrybegin, zs_deflate_getwritebuffer, zs_deflate_writeentrydata, zs_deflate_entryend} };
-
-/* Finds the implementation for a storage method (i.e. Deflate/Store)
- * @param      method     ZS_STORE or ZS_DEFLATE
- * @returns  Pointer to a zipimpl_s structure which contains callbacks for handling a file entries data
- */
-static struct zipimpl_s* zs_getMethodImpl( int method )
-{
-	if ( method == ZS_STORE )
-	{
-		return &storeImpl;
-	}
-	else
-	if ( method == ZS_DEFLATE )
-	{
-		return (struct zipimpl_s*)&deflateImpl;
-	}
-
-	fprintf (stderr, "Unrecognized compression method: %d\n", method);
-	return NULL;
 }
 
 static ZIPentry* zs_allocateentry( ZIPstream *zstream, char *name, time_t modtime )
@@ -473,6 +334,7 @@ static ZIPentry* zs_allocateentry( ZIPstream *zstream, char *name, time_t modtim
 		return NULL;
 	}
 
+	zentry->ZipVersion = 20;
 	zentry->GeneralFlag = 0;
 	uint32_t u32 = zs_datetime_unixtodos (modtime);
 	zentry->DOSDate = (uint16_t) (u32 >> 16);
@@ -499,13 +361,161 @@ static ZIPentry* zs_allocateentry( ZIPstream *zstream, char *name, time_t modtim
 	return zentry;
 }
 
+/* Inbuilt compression methods */
+static ZIPmethod storeImpl = { ZS_STORE, NULL, zs_store_entrybegin, zs_store_getwritebuffer, zs_store_writeentrydata, zs_store_entryend };
+static ZIPdeflateimpl deflateImpl = { {ZS_DEFLATE, NULL, zs_deflate_entrybegin, zs_deflate_getwritebuffer, zs_deflate_writeentrydata, zs_deflate_entryend} };
+
+/***************************************************************************
+ * zs_init:
+ *
+ * Initialize and return an ZIPstream struct. If a pointer to an
+ * existing ZIPstream is supplied it will be re-initizlied, otherwise
+ * memory will be allocated.
+ *
+ * Returns a pointer to a ZIPstream struct on success or NULL on error.
+ ***************************************************************************/
+ZIPstream *
+zs_init ( int fd, ZIPstream *zs )
+{
+	ZIPentry *zentry, *tofree;
+
+	if ( ! zs )
+	{
+		zs = (ZIPstream *) malloc (sizeof(ZIPstream));
+	}
+	else
+	{
+		zentry = zs->FirstEntry;
+		while ( zentry )
+		{
+			tofree = zentry;
+			zentry = zentry->next;
+			free (tofree);
+		}
+	}
+
+	if ( zs == NULL )
+	{
+		fprintf (stderr, "zs_init: Cannot allocate memory\n");
+		return NULL;
+	}
+
+	memset (zs, 0, sizeof (ZIPstream));
+
+	zs->fd = fd;
+
+	/* Register inbuilt compression methodIds */
+	zs_registermethod( zs, &storeImpl );
+	zs_registermethod( zs, (ZIPmethod*)&deflateImpl );
+
+
+#if FDZIPSTREAM_REGISTEREXTENSIONS
+	zs_registerExtensions( zs );
+#endif
+
+
+	return zs;
+}  /* End of zs_init() */
+
+
+/***************************************************************************
+ * zs_free:
+ *
+ * Free all memory associated with a ZIPstream including all ZIPentry
+ * structures.
+ ***************************************************************************/
+void
+zs_free ( ZIPstream *zs )
+{
+	ZIPentry *zentry, *tofree;
+
+	if ( ! zs )
+		return;
+
+	zentry = zs->FirstEntry;
+	while ( zentry )
+	{
+		tofree = zentry;
+		zentry = zentry->next;
+		free (tofree);
+	}
+
+	free (zs);
+
+}  /* End of zs_free() */
+
+/* Finds the implementation for a storage methodId (i.e. Deflate/Store)
+ * @param      methodId     ZS_STORE or ZS_DEFLATE
+ * @returns  Pointer to a zipmethod_s structure which contains callbacks for handling a file entries data
+ */
+static ZIPmethod* zs_findmethod( ZIPstream *zs, int methodId )
+{
+	ZIPmethod* method = zs->firstimpl;
+	while ( method )
+	{
+		if ( methodId == method->id )
+		{
+			return method;
+		}
+		method = method->next;
+	}
+	fprintf (stderr, "Unrecognized compression methodId: %d\n", methodId);
+	return NULL;
+}
+
+static int32_t zs_writeheader(  ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus  )
+{
+	/* Write the Local File Header, with zero'd CRC and sizes */
+	int32_t packed = 0;
+	packuint32 (zstream, &packed, LOCALHEADERSIG);              /* Data Description signature */
+	packuint16 (zstream, &packed, zentry->ZipVersion);
+	packuint16 (zstream, &packed, zentry->GeneralFlag);
+	packuint16 (zstream, &packed, zentry->CompressionMethod);
+	packuint16 (zstream, &packed, zentry->DOSTime);             /* DOS file modification time */
+	packuint16 (zstream, &packed, zentry->DOSDate);             /* DOS file modification date */
+	packuint32 (zstream, &packed, zentry->CRC32);               /* CRC-32 value of entry */
+	packuint32 (zstream, &packed, zentry->CompressedSize);      /* Compressed entry size */
+	packuint32 (zstream, &packed, zentry->UncompressedSize);    /* Uncompressed entry size */
+	packuint16 (zstream, &packed, zentry->NameLength);          /* File/entry name length */
+	packuint16 (zstream, &packed, 0);                           /* Extra field length */
+	/* File/entry name */
+	memcpy (zstream->buffer+packed, zentry->Name, zentry->NameLength); packed += zentry->NameLength;
+
+	int64_t lwritestatus = zs_writedata (zstream, zstream->buffer, packed);
+	if ( lwritestatus != packed )
+	{
+		fprintf (stderr, "Error writing ZIP local header: %s\n", strerror(errno));
+
+		if ( writestatus )
+			*writestatus = (ssize_t)lwritestatus;
+
+		return NULL;
+	}
+	return 1;
+}
+
+int zs_registermethod( ZIPstream *zs, ZIPmethod *methodId )
+{
+	if ( zs_findmethod( zs, methodId->id ) != NULL )
+	{
+		fprintf (stderr, "Compression methodId already registered: %d\n", methodId->id );
+		return 0;
+	}
+	/* Insert at head as its easier!
+	 * TODO: if we had lots of methodIds or lots of files we may want to improve the methodId search behaviour with a binary search etc. */
+	methodId->next = zs->firstimpl;
+	zs->firstimpl = methodId;
+
+	return 1;
+}
+
 /***************************************************************************
  * zs_writeentry:
  *
  * Write ZIP archive entry contained in a memory buffer using the
- * specified compression method.
+ * specified compression methodId.
  *
- * The method argument specifies the compression method to be used for
+ * The methodId argument specifies the compression methodId to be used for
  * this entry.  Possible values:
  *   Z_STORE - no compression
  *   Z_DEFLATE - deflate compression
@@ -519,7 +529,7 @@ static ZIPentry* zs_allocateentry( ZIPstream *zstream, char *name, time_t modtim
  ***************************************************************************/
 ZIPentry *
 zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
-		char *name, time_t modtime, int method, ssize_t *writestatus )
+		char *name, time_t modtime, int methodId, ssize_t *writestatus )
 {
 	if ( writestatus )
 		*writestatus = 0;
@@ -541,17 +551,16 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
 	/* Calculate, or continue calculation of, CRC32 of original data */
 	zentry->CRC32 = crc32 (zentry->CRC32, entry, entrysize);
 
-	/* Process entry data depending on method */
-	zentry->impl = zs_getMethodImpl( method );
-	if ( !zentry->impl )
+	/* Process entry data depending on methodId */
+	if ( (zentry->method = zs_findmethod( zstream, methodId )) == NULL )
 		return NULL;
 
-	if ( !zentry->impl->entrybegin( zentry ) )
+	if ( !zentry->method->entrybegin( zentry ) )
 		return NULL;
 
 	unsigned char* writebuffer = NULL;
 	int64_t writebuffersize = 0;
-	if ( !zentry->impl->getwritebuffer( zentry, entry, entrysize, &writebuffer, &writebuffersize ) )
+	if ( !zentry->method->getwritebuffer( zentry, entry, entrysize, &writebuffer, &writebuffersize ) )
 		return NULL;
 
 	/* Write the Local File Header */
@@ -594,7 +603,7 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
  * output stream.  The modtime argument sets the modification time
  * stamp for the entry.
  *
- * The method argument specifies the compression method to be used
+ * The methodId argument specifies the compression methodId to be used
  * for this entry.  This argument can be:
  *   Z_STORE   - no compression
  *   Z_DEFLATE - deflate compression
@@ -607,7 +616,7 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
  * Return pointer to ZIPentry on success and NULL on error.
  ***************************************************************************/
 ZIPentry *
-zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int method,
+zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int methodId,
 		ssize_t *writestatus )
 {
 	if ( writestatus )
@@ -624,12 +633,11 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int method,
 	/* Set bit to denote streaming */
 	BIT_SET (zentry->GeneralFlag, 3);
 
-	/* Process entry data depending on method */
-	zentry->impl = zs_getMethodImpl( method );
-	if ( !zentry->impl )
+	/* Process entry data depending on methodId */
+	if ( (zentry->method = zs_findmethod( zstream, methodId )) == NULL )
 		return NULL;
 
-	if ( !zentry->impl->entrybegin( zentry ) )
+	if ( !zentry->method->entrybegin( zentry ) )
 			return NULL;
 
 	if ( !zs_writeheader( zstream, zentry, writestatus ) )
@@ -677,8 +685,8 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
 		zentry->CRC32 = crc32 (zentry->CRC32, (unsigned char *)entry, entrysize);
 	}
 
-	/* Process entry data depending on method */
-	if ( !zentry->impl->writeentrydata( zstream, zentry, entry, entrysize, final, writestatus ) )
+	/* Process entry data depending on methodId */
+	if ( !zentry->method->writeentrydata( zstream, zentry, entry, entrysize, final, writestatus ) )
 		return NULL;
 
 	return zentry;
@@ -723,7 +731,7 @@ zs_entryend ( ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus)
 	if ( ! zstream || ! zentry )
 		return NULL;
 
-	zentry->impl->entryend( zentry );
+	zentry->method->entryend( zentry );
 
 	/* Write Data Description */
 	int32_t packed = 0;
@@ -745,7 +753,6 @@ zs_entryend ( ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus)
 
 	return zentry;
 }  /* End of zs_entryend() */
-
 
 /***************************************************************************
  * zs_finish:
@@ -789,9 +796,9 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
 		packed = 0;
 		packuint32 (zstream, &packed, CENTRALHEADERSIG);    /* Central File Header signature */
 		packuint16 (zstream, &packed, 0);                   /* Version made by */
-		packuint16 (zstream, &packed, 20);                  /* Version needed to extract, (2.0) */
-		packuint16 (zstream, &packed, zentry->GeneralFlag); /* General purpose bit flag */
-		packuint16 (zstream, &packed, zentry->CompressionMethod); /* Compression method */
+		packuint16 (zstream, &packed, zentry->ZipVersion);
+		packuint16 (zstream, &packed, zentry->GeneralFlag);
+		packuint16 (zstream, &packed, zentry->CompressionMethod);
 		packuint16 (zstream, &packed, zentry->DOSTime);     /* DOS file modification time */
 		packuint16 (zstream, &packed, zentry->DOSDate);     /* DOS file modification date */
 		packuint32 (zstream, &packed, zentry->CRC32);       /* CRC-32 value of entry */
