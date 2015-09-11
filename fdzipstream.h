@@ -7,13 +7,19 @@
 #ifndef FDZIPSTREAM_H
 #define FDZIPSTREAM_H
 
-
-#include <zlib.h>
 #include <stdint.h>
+#include <time.h>
 #include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+/* Set FDZIPSTREAM_REGISTEREXTENSIONS=1 to enable automatic support for enabled extensions in fdzipstream_extensions.h.
+ *  Without this zs_registermethod() or zs_extensions_register(zs) can be used to register compression methods.
+ */
+#ifndef FDZIPSTREAM_REGISTEREXTENSIONS
+#	define FDZIPSTREAM_REGISTEREXTENSIONS 0
 #endif
 
 #ifndef DEF_MEM_LEVEL
@@ -45,12 +51,12 @@ extern "C" {
 /* Maximum length of file/entry name including NULL terminator */
 #define ZENTRY_NAME_LENGTH 256
 
-
 /* ZIP archive entry */
 typedef struct zipentry_s
 {
-  uint16_t GeneralFlag;
-  uint16_t CompressionMethod;
+  uint16_t ZipVersion;        /* Version needed to extract, (Default: 2.0) */
+  uint16_t GeneralFlag;       /* General purpose bit flag */
+  uint16_t CompressionMethod; /* Compression methodId */
   uint16_t DOSDate;
   uint16_t DOSTime;
   uint32_t CRC32;
@@ -59,8 +65,7 @@ typedef struct zipentry_s
   uint64_t LocalHeaderOffset;
   uint16_t NameLength;
   char Name[ZENTRY_NAME_LENGTH];
-  z_stream zlstream;
-  const struct zipimpl_s* impl;
+  struct zipmethod_s* method;
   struct zipentry_s *next;
 } ZIPentry;
 
@@ -73,18 +78,36 @@ typedef struct zipstream_s
   int32_t EntryCount;
   struct zipentry_s *FirstEntry;
   struct zipentry_s *LastEntry;
+  struct zipmethod_s* firstimpl; /* First registered implementation type in linked list */
   unsigned char buffer[ZS_BUFFER_SIZE];
 } ZIPstream;
 
+/* Interface for a compression method implementation registered via zs_registermethod() */
+typedef struct zipmethod_s
+{
+	int id;              ///< Compression method this method applies to i.e. ZS_DEFLATE or ZS_STORE etc
+	struct zipmethod_s* next;  ///< [internal] Next registered method in linked list
+
+	/* Function prototypes for compression method implementation */
+	int32_t (*entrybegin)( ZIPentry *zentry );
+	int32_t (*getwritebuffer)( ZIPentry *zentry, unsigned char *entry, int64_t entrysize, unsigned char** writebuffer, int64_t* writebuffersize );
+	int32_t (*writeentrydata)( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry, int64_t entrysize, int final, ssize_t *writestatus );
+	int32_t (*entryend)( ZIPentry *zentry );
+} ZIPmethod;
 
 extern ZIPstream * zs_init ( int fd, ZIPstream *zs );
 extern void zs_free ( ZIPstream *zs );
 
+/* Register an implementation
+ * @return 1 on success, 0 on failure
+ */
+extern int zs_registermethod( ZIPstream *zs, ZIPmethod *methodImpl );
+
 extern ZIPentry * zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
-				  char *name, time_t modtime, int method, ssize_t *writestatus );
+				  char *name, time_t modtime, int methodId, ssize_t *writestatus );
 
 extern ZIPentry * zs_entrybegin ( ZIPstream *zstream, char *name,
-				  time_t modtime, int method,
+				  time_t modtime, int methodId,
 				  ssize_t *writestatus );
 
 extern ZIPentry * zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry,
