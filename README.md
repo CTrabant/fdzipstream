@@ -8,6 +8,7 @@ seekable and can be a pipe or a network socket.  The entire archive
 contents does not need to be in memory at once.
 
 [zlib](http://www.zlib.net/) is required for deflate compression: http://www.zlib.net/
+
 [openssl](https://www.openssl.org/) is required for AES-256 file encryption extension: https://www.openssl.org/
 
 ## What this will do for you:
