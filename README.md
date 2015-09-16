@@ -1,3 +1,5 @@
+NOTE: This is a modified fork of CTrabant/fdzipstream whcih has be majorly rewritten to remove duplication and add extensibility via an interface which adds AE-2 (AES-256) encryption standard to fdzipstream.
+
 # FD ZIP Stream
 
 Create ZIP archives in streaming fashion, writing to a file
