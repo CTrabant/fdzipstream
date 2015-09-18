@@ -46,7 +46,7 @@ extern "C" {
 #define ZS_WRITE_SIZE 1048576
 
 /* Multi-use stream buffer, 256 KiB */
-#define ZS_BUFFER_SIZE 262/*144*/
+#define ZS_BUFFER_SIZE 262144
 
 /* Maximum length of file/entry name including NULL terminator */
 #define ZENTRY_NAME_LENGTH 256
