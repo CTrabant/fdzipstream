@@ -219,12 +219,21 @@ static int32_t zs_deflate_process( ZIPmethodimpl* thisbase, uint8_t *entry, int6
 		return maximumWriteSize;
 	}
 
+
+	//No point continuing if we have nothing to write!
+	if ( zlstream->avail_in == 0
+			&& !final )
+	{
+		return 0;
+	}
+
 	//Output buffer
 	zlstream->next_out = writeBuffer;
 	zlstream->avail_out = writeBufferSize;
 
 	int rv = deflate( zlstream, (final ? Z_FINISH : Z_NO_FLUSH) );
-	if ( rv != Z_OK && rv != Z_STREAM_END )
+	if ( rv != Z_OK
+			&& rv != Z_STREAM_END )
 	{
 		fprintf (stderr, "zs_deflate_process: Error with deflate(): %d\n", rv);
 		return -1;
