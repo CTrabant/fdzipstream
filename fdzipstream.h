@@ -2,14 +2,12 @@
 /* Allow this code to be skipped by declaring NOFDZIP */
 #ifndef NOFDZIP
 
-/* Version: 2015.7.27 */
-
 #ifndef FDZIPSTREAM_H
 #define FDZIPSTREAM_H
 
-
 #include <zlib.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
