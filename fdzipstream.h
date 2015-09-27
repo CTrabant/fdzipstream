@@ -76,20 +76,20 @@ extern ZIPstream * zs_init ( int fd, ZIPstream *zs );
 extern void zs_free ( ZIPstream *zs );
 
 extern ZIPentry * zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
-				  char *name, time_t modtime, int method, ssize_t *writestatus );
+                                  char *name, time_t modtime, int method, ssize_t *writestatus );
 
 extern ZIPentry * zs_entrybegin ( ZIPstream *zstream, char *name,
-				  time_t modtime, int method,
-				  ssize_t *writestatus );
+                                  time_t modtime, int method,
+                                  ssize_t *writestatus );
 
 extern ZIPentry * zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry,
-				 unsigned char *entry, int64_t entrysize,
-				 int final, ssize_t *writestatus );
+                                 unsigned char *entry, int64_t entrysize,
+                                 int final, ssize_t *writestatus );
 
 extern ZIPentry * zs_entryflush ( ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus );
 
 extern ZIPentry * zs_entryend ( ZIPstream *zstream, ZIPentry *zentry,
-				ssize_t *writestatus);
+                                ssize_t *writestatus);
 
 extern int zs_finish ( ZIPstream *zstream, ssize_t *writestatus );
 

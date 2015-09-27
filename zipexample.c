@@ -64,17 +64,17 @@ int main (int argc, char *argv[])
   for ( idx=1; idx < argc; idx++ )
     {
       if ( ! strncmp (argv[idx], "-S", 2) )
-	{
-	  method = ZS_STORE;
-	  fprintf (stderr, "Storing archive entries, no compression\n");
-	  continue;
-	}
+        {
+          method = ZS_STORE;
+          fprintf (stderr, "Storing archive entries, no compression\n");
+          continue;
+        }
       else if ( ! strncmp (argv[idx], "-D", 2) )
-	{
-	  method = ZS_DEFLATE;
-	  fprintf (stderr, "Deflating archive entries, no compression\n");
-	  continue;
-	}
+        {
+          method = ZS_DEFLATE;
+          fprintf (stderr, "Deflating archive entries, no compression\n");
+          continue;
+        }
     }
   
   /* Set output stream to stdout */
@@ -92,38 +92,38 @@ int main (int argc, char *argv[])
   
   /* Write entry containing buffer contents */
   zentry = zs_writeentry (zstream, (unsigned char *)buffer, buffersize,
-			  "Leon.txt", now, method, &writestatus);
+                          "Leon.txt", now, method, &writestatus);
   
   if ( zentry == NULL )
     {
       fprintf (stderr, "Error adding entry to output ZIP (writestatus: %lld)\n",
-	       (long long int) writestatus);
+               (long long int) writestatus);
       return 1;
     }
   
   fprintf (stderr, "Added %s: %lld -> %lld (%.1f%%)\n",
-	   zentry->Name,
-	   (long long int) zentry->UncompressedSize,
-	   (long long int) zentry->CompressedSize,
-	   (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
+           zentry->Name,
+           (long long int) zentry->UncompressedSize,
+           (long long int) zentry->CompressedSize,
+           (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
   
   
   /* Write another entry containing the same buffer contents */
   zentry = zs_writeentry (zstream, (unsigned char *)buffer, buffersize,
-			  "Deckard.txt", now, method, &writestatus);
+                          "Deckard.txt", now, method, &writestatus);
   
   if ( zentry == NULL )
     {
       fprintf (stderr, "Error adding entry to output ZIP (writestatus: %lld)\n",
-	       (long long int) writestatus);
+               (long long int) writestatus);
       return 1;
     }
   
   fprintf (stderr, "Added %s: %lld -> %lld (%.1f%%)\n",
-	   zentry->Name,
-	   (long long int) zentry->UncompressedSize,
-	   (long long int) zentry->CompressedSize,
-	   (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
+           zentry->Name,
+           (long long int) zentry->UncompressedSize,
+           (long long int) zentry->CompressedSize,
+           (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
   
   /* Many more files/entries can be added to the ZIP archive ... */
   
@@ -131,12 +131,12 @@ int main (int argc, char *argv[])
   if ( zs_finish (zstream, &writestatus) )
     {
       fprintf (stderr, "Error finishing ZIP archive (writestatus: %lld)\n",
-	       (long long int) writestatus);
+               (long long int) writestatus);
       return 1;
     }
   
   fprintf (stderr, "Success, created archive with %d entries\n",
-	   zstream->EntryCount);
+           zstream->EntryCount);
   
   /* Cleanup */
   zs_free (zstream);

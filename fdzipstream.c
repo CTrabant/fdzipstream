@@ -84,8 +84,8 @@
 #define BIT_SET(a,b) ((a) |= (1<<(b)))
 
 static int64_t zs_writedata ( ZIPstream *zstream,
-			      unsigned char *writeentry,
-			      int64_t writesize );
+                              unsigned char *writeentry,
+                              int64_t writesize );
 static uint32_t zs_datetime_unixtodos ( time_t t );
 static void zs_htolx ( void *data, int size );
 
@@ -112,11 +112,11 @@ zs_init ( int fd, ZIPstream *zs )
     {
       zentry = zs->FirstEntry;
       while ( zentry )
-	{
-	  tofree = zentry;
-	  zentry = zentry->next;
-	  free (tofree);
-	}
+        {
+          tofree = zentry;
+          zentry = zentry->next;
+          free (tofree);
+        }
     }
   
   if ( zs == NULL )
@@ -202,7 +202,7 @@ static void packuint64 (ZIPstream *ZS, int *O, uint64_t V)
  ***************************************************************************/
 ZIPentry *
 zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
-		char *name, time_t modtime, int method, ssize_t *writestatus )
+                char *name, time_t modtime, int method, ssize_t *writestatus )
 {
   ZIPentry *zentry;
   unsigned char *writeentry = NULL;
@@ -223,7 +223,7 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
   if ( entrysize > 0xFFFFFFFF )
     {
       fprintf (stderr, "zs_writeentry(%s): Individual entries cannot exceed %lld bytes\n",
-	       (name) ? name : "", (long long) 0xFFFFFFFF);
+               (name) ? name : "", (long long) 0xFFFFFFFF);
       return NULL;
     }
   
@@ -284,20 +284,20 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
       zentry->zlstream.data_type = Z_BINARY;
       
       if ( deflateInit2 (&zentry->zlstream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
-			 -MAX_WBITS, DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY) != Z_OK )
-	{
-	  fprintf (stderr, "zs_writeentry: Error with deflateInit2()\n");
-	  return NULL;
-	}
+                         -MAX_WBITS, DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY) != Z_OK )
+        {
+          fprintf (stderr, "zs_writeentry: Error with deflateInit2()\n");
+          return NULL;
+        }
       
       /* Determine maximum size of compressed data and allocate buffer */
       writesize = deflateBound (&zentry->zlstream, entrysize);
       
       if ( (writeentry = (unsigned char *) malloc (writesize)) == NULL )
-	{
-	  fprintf (stderr, "zs_writeentry: Error allocating deflation buffer\n");
-	  return NULL;
-	}
+        {
+          fprintf (stderr, "zs_writeentry: Error allocating deflation buffer\n");
+          return NULL;
+        }
       
       /* Input buffer */
       zentry->zlstream.next_in = entry;
@@ -305,22 +305,22 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
       
       /* Deflate all input data into writeentry buffer */
       while ( zentry->zlstream.avail_in > 0 )
-	{
-	  /* Output buffer */
-	  zentry->zlstream.next_out = writeentry + writetotal;
-	  avail_out = writesize - writetotal;
-	  zentry->zlstream.avail_out = avail_out;
-	  
-	  rv = deflate (&zentry->zlstream, Z_FINISH);
-	  
-	  if ( rv != Z_OK && rv != Z_STREAM_END )
-	    {
-	      fprintf (stderr, "zs_writeentry: Error with deflate(): %d\n", rv);
-	      return NULL;
-	    }
-	  
-	  writetotal += avail_out - zentry->zlstream.avail_out;
-	}
+        {
+          /* Output buffer */
+          zentry->zlstream.next_out = writeentry + writetotal;
+          avail_out = writesize - writetotal;
+          zentry->zlstream.avail_out = avail_out;
+          
+          rv = deflate (&zentry->zlstream, Z_FINISH);
+          
+          if ( rv != Z_OK && rv != Z_STREAM_END )
+            {
+              fprintf (stderr, "zs_writeentry: Error with deflate(): %d\n", rv);
+              return NULL;
+            }
+          
+          writetotal += avail_out - zentry->zlstream.avail_out;
+        }
       
       writesize = writetotal;
       zentry->CompressedSize = writetotal;
@@ -356,7 +356,7 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
       fprintf (stderr, "Error writing ZIP local header: %s\n", strerror(errno));
       
       if ( writestatus )
-	*writestatus = (ssize_t)lwritestatus;
+        *writestatus = (ssize_t)lwritestatus;
       
       return NULL;
     }
@@ -366,10 +366,10 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
   if ( lwritestatus != writesize )
     {
       fprintf (stderr, "Error writing ZIP entry data (%d): %s\n",
-	       zstream->fd, strerror(errno));
+               zstream->fd, strerror(errno));
       
       if ( writestatus )
-	*writestatus = (ssize_t)lwritestatus;
+        *writestatus = (ssize_t)lwritestatus;
       
       return NULL;
     }
@@ -403,7 +403,7 @@ zs_writeentry ( ZIPstream *zstream, unsigned char *entry, int64_t entrysize,
  ***************************************************************************/
 ZIPentry *
 zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int method,
-		ssize_t *writestatus )
+                ssize_t *writestatus )
 {
   ZIPentry *zentry;
   int64_t lwritestatus;
@@ -468,11 +468,11 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int method,
       zentry->zlstream.data_type = Z_BINARY;
       
       if ( deflateInit2(&zentry->zlstream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
-			-MAX_WBITS, DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY) != Z_OK )
-	{
-	  fprintf (stderr, "zs_beginentry: Error with deflateInit2()\n");
-	  return NULL;
-	}
+                        -MAX_WBITS, DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY) != Z_OK )
+        {
+          fprintf (stderr, "zs_beginentry: Error with deflateInit2()\n");
+          return NULL;
+        }
     }
   else
     {
@@ -502,7 +502,7 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int method,
       fprintf (stderr, "Error writing ZIP local header: %s\n", strerror(errno));
       
       if ( writestatus )
-	*writestatus = (ssize_t)lwritestatus;
+        *writestatus = (ssize_t)lwritestatus;
       
       return NULL;
     }
@@ -531,7 +531,7 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int method,
  ***************************************************************************/
 ZIPentry *
 zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
-	       int64_t entrysize, int final, ssize_t *writestatus )
+               int64_t entrysize, int final, ssize_t *writestatus )
 {
   unsigned char *writeentry = NULL;
   int64_t writesize = 0;
@@ -561,15 +561,15 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
       /* Write entry data */
       lwritestatus = zs_writedata (zstream, writeentry, writesize);
       if ( lwritestatus != writesize )
-	{
-	  fprintf (stderr, "Error writing ZIP entry data (%d): %s\n",
-		   zstream->fd, strerror(errno));
-	  
-	  if ( writestatus )
-	    *writestatus = (ssize_t)lwritestatus;
-	  
-	  return NULL;
-	}
+        {
+          fprintf (stderr, "Error writing ZIP entry data (%d): %s\n",
+                   zstream->fd, strerror(errno));
+          
+          if ( writestatus )
+            *writestatus = (ssize_t)lwritestatus;
+          
+          return NULL;
+        }
       
       zentry->UncompressedSize += entrysize;
       zentry->CompressedSize += entrysize;
@@ -582,71 +582,71 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, unsigned char *entry,
       
       /* Deflate all input data and write compressed output data */
       while ( zentry->zlstream.avail_in > 0 )
-	{
-	  zentry->zlstream.next_out = zstream->buffer;
-	  zentry->zlstream.avail_out = ZS_BUFFER_SIZE;
-	  
-	  rv = deflate (&zentry->zlstream, Z_NO_FLUSH);
-	  
-	  if ( rv != Z_OK )
-	    {
-	      fprintf (stderr, "zs_entrydata: Error with no flush deflate(): %d\n", rv);
-	      return NULL;
-	    }
-	  
-	  writesize = ZS_BUFFER_SIZE - zentry->zlstream.avail_out;
-	  
-	  lwritestatus = zs_writedata (zstream, zstream->buffer, writesize);
-	  if ( lwritestatus != writesize )
-	    {
-	      fprintf (stderr, "Error writing ZIP entry data (%d): %s\n",
-		       zstream->fd, strerror(errno));
-	      
-	      if ( writestatus )
-		*writestatus = (ssize_t)lwritestatus;
-	      
-	      return NULL;
-	    }
-	  
-	  zentry->CompressedSize += writesize;
-	}
+        {
+          zentry->zlstream.next_out = zstream->buffer;
+          zentry->zlstream.avail_out = ZS_BUFFER_SIZE;
+          
+          rv = deflate (&zentry->zlstream, Z_NO_FLUSH);
+          
+          if ( rv != Z_OK )
+            {
+              fprintf (stderr, "zs_entrydata: Error with no flush deflate(): %d\n", rv);
+              return NULL;
+            }
+          
+          writesize = ZS_BUFFER_SIZE - zentry->zlstream.avail_out;
+          
+          lwritestatus = zs_writedata (zstream, zstream->buffer, writesize);
+          if ( lwritestatus != writesize )
+            {
+              fprintf (stderr, "Error writing ZIP entry data (%d): %s\n",
+                       zstream->fd, strerror(errno));
+              
+              if ( writestatus )
+                *writestatus = (ssize_t)lwritestatus;
+              
+              return NULL;
+            }
+          
+          zentry->CompressedSize += writesize;
+        }
       
       zentry->UncompressedSize += entrysize;
       
       /* Flush buffered compressed data */
       if ( final )
-	{
-	  rv = Z_OK;
-	  while ( rv == Z_OK )
-	    {
-	      zentry->zlstream.next_out = zstream->buffer;
-	      zentry->zlstream.avail_out = ZS_BUFFER_SIZE;
-	      
-	      rv = deflate (&zentry->zlstream, Z_FINISH);
-	      
-	      if ( rv != Z_OK && rv != Z_STREAM_END )
-		{
-		  fprintf (stderr, "zs_entrydata: Error with flushing deflate(): %d\n", rv);
-		  return NULL;
-		}
-	      
-	      writesize = ZS_BUFFER_SIZE - zentry->zlstream.avail_out;
-	      
-	      lwritestatus = zs_writedata (zstream, zstream->buffer, writesize);
-	      if ( lwritestatus != writesize )
-		{
-		  fprintf (stderr, "Error writing ZIP entry data (%d): %s\n",
-			   zstream->fd, strerror(errno));
-		  
-		  if ( writestatus )
-		    *writestatus = (ssize_t)lwritestatus;
-		  
-		  return NULL;
-		}
-	      
-	      zentry->CompressedSize += writesize;
-	    }
-	}
+        {
+          rv = Z_OK;
+          while ( rv == Z_OK )
+            {
+              zentry->zlstream.next_out = zstream->buffer;
+              zentry->zlstream.avail_out = ZS_BUFFER_SIZE;
+              
+              rv = deflate (&zentry->zlstream, Z_FINISH);
+              
+              if ( rv != Z_OK && rv != Z_STREAM_END )
+                {
+                  fprintf (stderr, "zs_entrydata: Error with flushing deflate(): %d\n", rv);
+                  return NULL;
+                }
+              
+              writesize = ZS_BUFFER_SIZE - zentry->zlstream.avail_out;
+              
+              lwritestatus = zs_writedata (zstream, zstream->buffer, writesize);
+              if ( lwritestatus != writesize )
+                {
+                  fprintf (stderr, "Error writing ZIP entry data (%d): %s\n",
+                           zstream->fd, strerror(errno));
+                  
+                  if ( writestatus )
+                    *writestatus = (ssize_t)lwritestatus;
+                  
+                  return NULL;
+                }
+              
+              zentry->CompressedSize += writesize;
+            }
+        }
     }
   
   return zentry;
@@ -712,7 +712,7 @@ zs_entryend ( ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus)
       fprintf (stderr, "Error writing streaming ZIP data description: %s\n", strerror(errno));
       
       if ( writestatus )
-	*writestatus = (ssize_t)lwritestatus;
+        *writestatus = (ssize_t)lwritestatus;
       
       return NULL;
     }
@@ -778,28 +778,28 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
       packuint16 (zstream, &packed, 0);                   /* Internal file attributes */
       packuint32 (zstream, &packed, 0);                   /* External file attributes */
       packuint32 (zstream, &packed, ( zip64 ) ?
-		  0xFFFFFFFF : zentry->LocalHeaderOffset); /* Relative offset of Local Header */
+                  0xFFFFFFFF : zentry->LocalHeaderOffset); /* Relative offset of Local Header */
       
       /* File/entry name */
       memcpy (zstream->buffer+packed, zentry->Name, zentry->NameLength); packed += zentry->NameLength;
       
       if ( zip64 )  /* ZIP64 Extra Field */
-	{
-	  packuint16 (zstream, &packed, 1);      /* Extra field ID, 1 = ZIP64 */
-	  packuint16 (zstream, &packed, 8);      /* Extra field data length */
-	  packuint64 (zstream, &packed, zentry->LocalHeaderOffset); /* Offset to Local Header */
-	}
+        {
+          packuint16 (zstream, &packed, 1);      /* Extra field ID, 1 = ZIP64 */
+          packuint16 (zstream, &packed, 8);      /* Extra field data length */
+          packuint64 (zstream, &packed, zentry->LocalHeaderOffset); /* Offset to Local Header */
+        }
       
       lwritestatus = zs_writedata (zstream, zstream->buffer, packed);
       if ( lwritestatus != packed )
-	{
-	  fprintf (stderr, "Error writing ZIP central directory header: %s\n", strerror(errno));
-	  
-	  if ( writestatus )
-	    *writestatus = (ssize_t)lwritestatus;
-	  
-	  return -1;
-	}
+        {
+          fprintf (stderr, "Error writing ZIP central directory header: %s\n", strerror(errno));
+          
+          if ( writestatus )
+            *writestatus = (ssize_t)lwritestatus;
+          
+          return -1;
+        }
       
       zentry = zentry->next;
     }
@@ -828,14 +828,14 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
       
       lwritestatus = zs_writedata (zstream, zstream->buffer, packed);
       if ( lwritestatus != packed )
-	{
-	  fprintf (stderr, "Error writing ZIP64 end of central directory record: %s\n", strerror(errno));
-	  
-	  if ( writestatus )
-	    *writestatus = (ssize_t)lwritestatus;
-	  
-	  return -1;
-	}
+        {
+          fprintf (stderr, "Error writing ZIP64 end of central directory record: %s\n", strerror(errno));
+          
+          if ( writestatus )
+            *writestatus = (ssize_t)lwritestatus;
+          
+          return -1;
+        }
       
       /* Write ZIP64 End of Central Directory Locator, packing into write buffer and swapped to little-endian order */
       packed = 0;
@@ -846,14 +846,14 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
       
       lwritestatus = zs_writedata (zstream, zstream->buffer, packed);
       if ( lwritestatus != packed )
-	{
-	  fprintf (stderr, "Error writing ZIP64 end of central directory locator: %s\n", strerror(errno));
-	  
-	  if ( writestatus )
-	    *writestatus = (ssize_t)lwritestatus;
-	  
-	  return -1;
-	}
+        {
+          fprintf (stderr, "Error writing ZIP64 end of central directory locator: %s\n", strerror(errno));
+          
+          if ( writestatus )
+            *writestatus = (ssize_t)lwritestatus;
+          
+          return -1;
+        }
     }
   
   /* Write End of Central Directory Record, packing into write buffer and swapped to little-endian order */
@@ -865,7 +865,7 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
   packuint16 (zstream, &packed, zstream->EntryCount); /* Number of entries in CD */
   packuint32 (zstream, &packed, cdsize);           /* Size of Central Directory */
   packuint32 (zstream, &packed, (zstream->CentralDirectoryOffset > 0xFFFFFFFF) ?
-	      0xFFFFFFFF : zstream->CentralDirectoryOffset); /* Offset to start of CD */
+              0xFFFFFFFF : zstream->CentralDirectoryOffset); /* Offset to start of CD */
   packuint16 (zstream, &packed, 0);                /* ZIP file comment length */
   
   lwritestatus = zs_writedata (zstream, zstream->buffer, packed);
@@ -874,7 +874,7 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
       fprintf (stderr, "Error writing end of central directory record: %s\n", strerror(errno));
       
       if ( writestatus )
-	*writestatus = (ssize_t)lwritestatus;
+        *writestatus = (ssize_t)lwritestatus;
       
       return -1;
     }
@@ -895,7 +895,7 @@ zs_finish ( ZIPstream *zstream, ssize_t *writestatus )
  ***************************************************************************/
 static int64_t
 zs_writedata ( ZIPstream *zstream, unsigned char *writeentry,
-	       int64_t writesize )
+               int64_t writesize )
 {
   ssize_t lwritestatus;
   int64_t written;
@@ -909,14 +909,14 @@ zs_writedata ( ZIPstream *zstream, unsigned char *writeentry,
   while ( written < writesize )
     {
       writelen = ( (writesize - written) > ZS_WRITE_SIZE ) ?
-	ZS_WRITE_SIZE : (writesize - written);
+        ZS_WRITE_SIZE : (writesize - written);
       
       lwritestatus = write (zstream->fd, writeentry+written, writelen);
       
       if ( lwritestatus <= 0 )
-	{
-	  return lwritestatus;
-	}
+        {
+          return lwritestatus;
+        }
       
       zstream->WriteOffset += lwritestatus;
       written += lwritestatus;
@@ -951,12 +951,12 @@ zs_datetime_unixtodos ( time_t t )
   s.tm_mon += 1;
   
   return ( ((s.tm_year) < 1980) ? DOSTIME_STARTDATE :
-	   (((uint32_t)(s.tm_year) - 1980) << 25) |
-	   ((uint32_t)(s.tm_mon) << 21) |
-	   ((uint32_t)(s.tm_mday) << 16) |
-	   ((uint32_t)(s.tm_hour) << 11) |
-	   ((uint32_t)(s.tm_min) << 5) |
-	   ((uint32_t)(s.tm_sec) >> 1) );
+           (((uint32_t)(s.tm_year) - 1980) << 25) |
+           ((uint32_t)(s.tm_mon) << 21) |
+           ((uint32_t)(s.tm_mday) << 16) |
+           ((uint32_t)(s.tm_hour) << 11) |
+           ((uint32_t)(s.tm_min) << 5) |
+           ((uint32_t)(s.tm_sec) >> 1) );
 }
 
 
@@ -991,31 +991,31 @@ zs_htolx ( void *data, int size )
   if ( le == 0 )
     {
       switch ( size )
-	{
-	case 2:
-	  data2 = (uint16_t *) data;
-	  *data2=(((*data2>>8)&0xff) | ((*data2&0xff)<<8));
-	  break;
-	case 4:
-	  data4 = (uint32_t *) data;
-	  *data4=(((*data4>>24)&0xff) | ((*data4&0xff)<<24) |
-		  ((*data4>>8)&0xff00) | ((*data4&0xff00)<<8));
-	  break;
-	case 8:
-	  data4 = (uint32_t *) data;
-	  
-	  h0 = data4[0];
-	  h0 = (((h0>>24)&0xff) | ((h0&0xff)<<24) |
-		((h0>>8)&0xff00) | ((h0&0xff00)<<8));
-	  
-	  h1 = data4[1];
-	  h1 = (((h1>>24)&0xff) | ((h1&0xff)<<24) |
-		((h1>>8)&0xff00) | ((h1&0xff00)<<8));
-	  
-	  data4[0] = h1;
-	  data4[1] = h0;
-	  break;
-	}
+        {
+        case 2:
+          data2 = (uint16_t *) data;
+          *data2=(((*data2>>8)&0xff) | ((*data2&0xff)<<8));
+          break;
+        case 4:
+          data4 = (uint32_t *) data;
+          *data4=(((*data4>>24)&0xff) | ((*data4&0xff)<<24) |
+                  ((*data4>>8)&0xff00) | ((*data4&0xff00)<<8));
+          break;
+        case 8:
+          data4 = (uint32_t *) data;
+          
+          h0 = data4[0];
+          h0 = (((h0>>24)&0xff) | ((h0&0xff)<<24) |
+                ((h0>>8)&0xff00) | ((h0&0xff00)<<8));
+          
+          h1 = data4[1];
+          h1 = (((h1>>24)&0xff) | ((h1&0xff)<<24) |
+                ((h1>>8)&0xff00) | ((h1&0xff00)<<8));
+          
+          data4[0] = h1;
+          data4[1] = h0;
+          break;
+        }
     }
 }
 
