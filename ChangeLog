@@ -1,3 +1,12 @@
+2015.10.4: 2.0
+	Reorganize fdzipstream.c with suggestions from @Crog.
+	- Support for arbitrary methods through call back functions and convert
+	the included STORE and DEFLATE methods to use this interface.
+	- Remove duplication, zs_writeentry() is now a simple wrapper around
+	other functions.
+	- Remove zs_entryflush() external interface, flushing is now a part of
+	zs_entryend().
+
 2015.8.2: 1.1
 	- Rework deflate() logic for flexibility and simplicity.
 	- Add zs_entryflush() as a simple wrapper to flush internal compression
