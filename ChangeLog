@@ -3,9 +3,12 @@
 	- Support for arbitrary methods through call back functions and convert
 	the included STORE and DEFLATE methods to use this interface.
 	- Remove duplication, zs_writeentry() is now a simple wrapper around
-	other functions.
+	other functions.  All ZIP archives will now be created with streaming
+	structures as the capability to create them without is removed.
 	- Remove zs_entryflush() external interface, flushing is now a part of
 	zs_entryend().
+	- Changes to zipfiles.c example: remove streaming versus not code and
+	explicity entry flushing to match changes in API.
 
 2015.8.2: 1.1
 	- Rework deflate() logic for flexibility and simplicity.
