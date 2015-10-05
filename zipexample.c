@@ -39,15 +39,15 @@ int main (int argc, char *argv[])
 {
   ZIPstream *zstream = NULL;
   ZIPentry *zentry = NULL;
-  
+
   uint64_t buffersize = 0;
   ssize_t writestatus;
-  
+
   time_t now;
   int method = ZS_DEFLATE;
   int fd;
   int idx;
-  
+
   if ( argc < 2 )
     {
       fprintf (stderr, "zipexample: write a ZIP archive to stdout from memory buffer\n");
@@ -59,7 +59,7 @@ int main (int argc, char *argv[])
       fprintf (stderr, "\n");
       return 0;
     }
-  
+
   /* Loop through input arguments and process options */
   for ( idx=1; idx < argc; idx++ )
     {
@@ -76,57 +76,56 @@ int main (int argc, char *argv[])
           continue;
         }
     }
-  
+
   /* Set output stream to stdout */
   fd = fileno (stdout);
-  
+
   /* Initialize ZIP container, skip options */
   if ( (zstream = zs_init (fd, NULL)) == NULL )
     {
       fprintf (stderr, "Error initializing ZIP archive\n");
       return 1;
     }
-  
+
   buffersize = strlen (buffer);
   now = time(NULL);
-  
+
   /* Write entry containing buffer contents */
   zentry = zs_writeentry (zstream, (unsigned char *)buffer, buffersize,
                           "Leon.txt", now, method, &writestatus);
-  
+
   if ( zentry == NULL )
     {
       fprintf (stderr, "Error adding entry to output ZIP (writestatus: %lld)\n",
                (long long int) writestatus);
       return 1;
     }
-  
+
   fprintf (stderr, "Added %s: %lld -> %lld (%.1f%%)\n",
            zentry->Name,
            (long long int) zentry->UncompressedSize,
            (long long int) zentry->CompressedSize,
            (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
-  
-  
+
   /* Write another entry containing the same buffer contents */
   zentry = zs_writeentry (zstream, (unsigned char *)buffer, buffersize,
                           "Deckard.txt", now, method, &writestatus);
-  
+
   if ( zentry == NULL )
     {
       fprintf (stderr, "Error adding entry to output ZIP (writestatus: %lld)\n",
                (long long int) writestatus);
       return 1;
     }
-  
+
   fprintf (stderr, "Added %s: %lld -> %lld (%.1f%%)\n",
            zentry->Name,
            (long long int) zentry->UncompressedSize,
            (long long int) zentry->CompressedSize,
            (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
-  
+
   /* Many more files/entries can be added to the ZIP archive ... */
-  
+
   /* Finish ZIP archive */
   if ( zs_finish (zstream, &writestatus) )
     {
@@ -134,12 +133,12 @@ int main (int argc, char *argv[])
                (long long int) writestatus);
       return 1;
     }
-  
+
   fprintf (stderr, "Success, created archive with %d entries\n",
            zstream->EntryCount);
-  
+
   /* Cleanup */
   zs_free (zstream);
-  
+
   return 0;
 }
