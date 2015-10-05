@@ -10,17 +10,16 @@ contents does not need to be in memory at once.
 ## What this will do for you:
 
 * Create a ZIP archive in a streaming fashion, writing to an output stream (file descriptor, pipe, network socket) without seeking.
-* Compress the archive entries (using zlib).
+* Compress the archive entries (using zlib).  Support for the STORE and DEFLATE methods is included, others may be implemented through callback functions.
 * Add ZIP64 structures as needed to support large (>4GB) archives.
 * Simple creation of ZIP archives even if not streaming.
 
 ## What this will **NOT** do for you:
 
 - Open/close files or sockets.
-- Support advanced ZIP archive features (e.g. file attributes).
+- Support advanced ZIP archive features (e.g. file attributes, encryption).
 - Allow archiving of individual files/entries larger than 4GB, the total
    of all files can be larger than 4GB but not individual entries.
-- Allow every possible compression method.
 
 ZIP archive file/entry modifiation times are stored in UTC.
 
@@ -42,7 +41,6 @@ zs_init ()
     zs_entrybegin ()
       for each chunk of entry:
         zs_entrydata()
-    zs_entryflush()  [if final not flagged in zs_entrydata()]
     zs_entryend()
 zs_finish ()
 zs_free ()
