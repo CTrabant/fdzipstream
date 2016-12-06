@@ -119,6 +119,8 @@ int main (int argc, char *argv[])
       if ( ! (zentry = zs_entrybegin (zstream, argv[idx], st.st_mtime,
                                       method, &writestatus)) )
         {
+          zs_free (zstream);
+          free (buffer);
           fprintf (stderr, "Cannot begin ZIP entry for %s (writestatus: %lld)\n",
                    argv[idx], (long long int) writestatus);
           return 1;
@@ -134,6 +136,8 @@ int main (int argc, char *argv[])
           /* Add data to ZIP entry */
           if ( ! zs_entrydata (zstream, zentry, buffer, readsize, &writestatus) )
             {
+              zs_free (zstream);
+              free (buffer);
               fprintf (stderr, "Error adding entry data to ZIP for %s (writestatus: %lld)\n",
                        argv[idx], (long long int) writestatus);
               return 1;
@@ -143,6 +147,8 @@ int main (int argc, char *argv[])
       /* End ZIP entry */
       if ( ! zs_entryend (zstream, zentry, &writestatus) )
         {
+          zs_free (zstream);
+          free (buffer);
           fprintf (stderr, "Cannot end ZIP entry for %s (writestatus: %lld)\n",
                    argv[idx], (long long int) writestatus);
           return 1;
@@ -160,6 +166,8 @@ int main (int argc, char *argv[])
   /* Finish ZIP archive */
   if ( zs_finish (zstream, &writestatus) )
     {
+      zs_free (zstream);
+      free (buffer);
       fprintf (stderr, "Error finishing ZIP archive (writestatus: %lld)\n",
                (long long int) writestatus);
       return 1;
