@@ -548,6 +548,9 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int methodID,
   if ( writestatus )
     *writestatus = 0;
 
+  if ( ! zstream || ! name )
+    return NULL;
+
   /* Search for method ID */
   method = zstream->firstMethod;
   while ( method )
@@ -563,9 +566,6 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int methodID,
       fprintf (stderr, "Cannot find method ID %d\n", methodID);
       return NULL;
     }
-
-  if ( ! zstream | ! name )
-    return NULL;
 
   /* Allocate and initialize new entry */
   zentry = (ZIPentry *) calloc (1, sizeof(ZIPentry));
@@ -674,7 +674,7 @@ zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry, uint8_t *entry,
   if ( writestatus )
     *writestatus = 0;
 
-  if ( ! zstream | ! zentry )
+  if ( ! zstream || ! zentry )
     return NULL;
 
   if ( entry )
