@@ -101,6 +101,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <errno.h>
 
@@ -757,8 +758,8 @@ zs_entryend ( ZIPstream *zstream, ZIPentry *zentry, ssize_t *writestatus)
   /* Flush the entry */
   if ( ! zs_entrydata (zstream, zentry, NULL, 0, writestatus) )
     {
-      fprintf (stderr, "Error flushing entry (writestatus: %lld)\n",
-               (long long int) writestatus);
+      fprintf (stderr, "Error flushing entry (writestatus: %p)\n",
+               writestatus);
       return NULL;
     }
 
