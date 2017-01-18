@@ -368,11 +368,10 @@ zs_init ( int fd, ZIPstream *zs )
 {
   ZIPentry *zentry, *zefree;
   ZIPmethod *method, *mfree;
-  ZIPstream *_zs = NULL;
 
   if ( ! zs )
     {
-      _zs = zs = (ZIPstream *) malloc (sizeof(ZIPstream));
+      zs = (ZIPstream *) malloc (sizeof(ZIPstream));
     }
   else
     {
@@ -409,7 +408,7 @@ zs_init ( int fd, ZIPstream *zs )
                              zs_store_process,
                              NULL ) )
     {
-      free (_zs);
+      free (zs);
       return NULL;
     }
 
@@ -418,7 +417,7 @@ zs_init ( int fd, ZIPstream *zs )
                              zs_deflate_process,
                              zs_deflate_finish ) )
     {
-      free (_zs);
+      free (zs);
       return NULL;
     }
 
