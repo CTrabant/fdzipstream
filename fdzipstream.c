@@ -261,21 +261,24 @@ zs_deflate_finish ( ZIPstream *zstream, ZIPentry *zentry )
 {
   z_stream *zlstream = zentry->methoddata;
   int rv;
+  int rc = 0;
 
   rv = deflateEnd (zlstream);
 
   if ( rv == Z_DATA_ERROR )
     {
       fprintf (stderr, "zs_deflate_finish: Deflate ended, but output buffers not flushed!\n");
+      rc = -1;
     }
   else if ( rv == Z_STREAM_ERROR )
     {
       fprintf (stderr, "zs:deflate_finish: deflateEnd() returned error.\n");
+      rec = -1;
     }
 
   free (zlstream);
 
-  return (rv >= 0 ? 0 : rv);
+  return rc;
 }
 
 
