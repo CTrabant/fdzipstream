@@ -89,13 +89,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Modified 2015.10.4
+ * Modified 2017.1.17
  ***************************************************************************/
 
 /* Allow this code to be skipped by declaring NOFDZIP */
 #ifndef NOFDZIP
 
-#define FDZIPVERSION 2.0
+#define FDZIPVERSION 2.1
 
 #include <assert.h>
 #include <stdio.h>
