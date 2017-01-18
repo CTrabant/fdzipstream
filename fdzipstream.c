@@ -273,7 +273,7 @@ zs_deflate_finish ( ZIPstream *zstream, ZIPentry *zentry )
   else if ( rv == Z_STREAM_ERROR )
     {
       fprintf (stderr, "zs:deflate_finish: deflateEnd() returned error.\n");
-      rec = -1;
+      rc = -1;
     }
 
   free (zlstream);
