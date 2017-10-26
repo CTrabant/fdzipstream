@@ -99,6 +99,7 @@ int main (int argc, char *argv[])
 
       if ( fstat (fileno(input), &st) )
         {
+          fclose(input);
           fprintf (stderr, "Cannot stat %s: %s\n", argv[idx], strerror(errno));
           return 1;
         }
@@ -109,6 +110,7 @@ int main (int argc, char *argv[])
           bufferlength = 1048576;
           if ( (buffer = malloc (bufferlength)) == NULL )
             {
+              fclose(input);
               fprintf (stderr, "Cannot allocate %lld bytes\n",
                        (long long int) bufferlength);
               return 1;
@@ -119,6 +121,7 @@ int main (int argc, char *argv[])
       if ( ! (zentry = zs_entrybegin (zstream, argv[idx], st.st_mtime,
                                       method, &writestatus)) )
         {
+          fclose(input);
           zs_free (zstream);
           free (buffer);
           fprintf (stderr, "Cannot begin ZIP entry for %s (writestatus: %lld)\n",
@@ -138,6 +141,7 @@ int main (int argc, char *argv[])
             {
               zs_free (zstream);
               free (buffer);
+              fclose(input);
               fprintf (stderr, "Error adding entry data to ZIP for %s (writestatus: %lld)\n",
                        argv[idx], (long long int) writestatus);
               return 1;
@@ -149,6 +153,7 @@ int main (int argc, char *argv[])
         {
           zs_free (zstream);
           free (buffer);
+          fclose(input);
           fprintf (stderr, "Cannot end ZIP entry for %s (writestatus: %lld)\n",
                    argv[idx], (long long int) writestatus);
           return 1;
