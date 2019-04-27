@@ -7,7 +7,7 @@
  * Compile with:
  *   cc -Wall fdzipstream.c zipfiles.c -o zipfiles -lz
  *
- * Copyright 2015 CTrabant
+ * Copyright 2019 CTrabant
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +20,18 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * modified 2015.10.4
  ***************************************************************************/
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
+
+#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+  #include <fcntl.h>
+#endif
 
 #include "fdzipstream.h"
 
@@ -43,7 +44,7 @@ int main (int argc, char *argv[])
 
   unsigned char *buffer = NULL;
   uint64_t bufferlength = 0;
-  ssize_t writestatus;
+  int64_t writestatus;
 
   int method = ZS_DEFLATE;
   int fd;
@@ -63,6 +64,11 @@ int main (int argc, char *argv[])
       fprintf (stderr, "\n");
       return 0;
     }
+
+  /* Set stdout to binary mode for Windows platforms */
+  #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+  _setmode( _fileno( stdout ), _O_BINARY );
+  #endif
 
   /* Set output stream to stdout */
   fd = fileno (stdout);
@@ -91,7 +97,7 @@ int main (int argc, char *argv[])
       if ( ! strcmp (argv[idx], "-0") )
         continue;
 
-      if ( (input = fopen (argv[idx], "r")) == NULL )
+      if ( (input = fopen (argv[idx], "rb")) == NULL )
         {
           fprintf (stderr, "Cannot open %s: %s\n", argv[idx], strerror(errno));
           return 1;

@@ -8,7 +8,7 @@
  * Compile with:
  *   cc -Wall fdzipstream.c zipexample.c -o zipexample -lz
  *
- * Copyright 2015 CTrabant
+ * Copyright 2019 CTrabant
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,14 +21,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * modified 2013.9.28
  ***************************************************************************/
 
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 #include <errno.h>
 
 #include "fdzipstream.h"
@@ -41,7 +38,7 @@ int main (int argc, char *argv[])
   ZIPentry *zentry = NULL;
 
   uint64_t buffersize = 0;
-  ssize_t writestatus;
+  int64_t writestatus;
 
   time_t now;
   int method = ZS_DEFLATE;
@@ -72,7 +69,7 @@ int main (int argc, char *argv[])
       else if ( ! strncmp (argv[idx], "-D", 2) )
         {
           method = ZS_DEFLATE;
-          fprintf (stderr, "Deflating archive entries, no compression\n");
+          fprintf (stderr, "Deflating archive entries, with compression\n");
           continue;
         }
     }
