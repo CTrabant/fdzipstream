@@ -1,3 +1,6 @@
+2019.11.14: 2.3
+	- Fix encoding of entry modification times on non-Windows, thanks @sreschke80.
+
 2019.4.27: 2.2
 	- Add support for Windows including Makefile.nmake for building.
 	Installation of zlib on Windows remains as an exercise for the caller.

@@ -93,7 +93,7 @@
 /* Allow this code to be skipped by declaring NOFDZIP */
 #ifndef NOFDZIP
 
-#define FDZIPVERSION 2.2
+#define FDZIPVERSION 2.3
 
 #include <assert.h>
 #include <stdio.h>
@@ -1021,7 +1021,7 @@ zs_datetime_unixtodos ( time_t t )
   if ( gmtime_s (&s, &t) )
     return 0;
   #else
-  if ( gmtime_r (&t, &s) )
+  if ( gmtime_r (&t, &s) == NULL )
     return 0;
   #endif
 
