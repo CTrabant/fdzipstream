@@ -587,7 +587,7 @@ zs_entrybegin ( ZIPstream *zstream, char *name, time_t modtime, int methodID,
   zentry->CompressedSize = 0;
   zentry->UncompressedSize = 0;
   zentry->LocalHeaderOffset = zstream->WriteOffset;
-  strncpy (zentry->Name, (name)?name:"", ZENTRY_NAME_LENGTH - 1);
+  strncpy (zentry->Name, name, ZENTRY_NAME_LENGTH - 1);
   zentry->NameLength = strlen (zentry->Name);
   zentry->method = method;
   zentry->methoddata = NULL;
@@ -757,10 +757,14 @@ zs_entryend ( ZIPstream *zstream, ZIPentry *zentry, int64_t *writestatus)
     return NULL;
 
   /* Flush the entry */
-  if ( ! zs_entrydata (zstream, zentry, NULL, 0, writestatus) )
+  if ( ! zs_entrydata (zstream, zentry, NULL, 0, &lwritestatus) )
     {
       fprintf (stderr, "Error flushing entry (writestatus: %lld)\n",
-               (long long int)*writestatus);
+               (long long int)lwritestatus);
+
+      if ( writestatus )
+        *writestatus = lwritestatus;
+
       return NULL;
     }
 
