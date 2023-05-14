@@ -128,6 +128,10 @@ zs_store_process ( ZIPstream *zstream, ZIPentry *zentry,
                    uint8_t *entry, int64_t entrySize, int64_t *entryConsumed,
                    uint8_t *writeBuffer, int64_t writeBufferSize )
 {
+  /* Avoid warnings for arguments not used in this implementation */
+  (void)zstream;
+  (void)zentry;
+
   if ( ! entry || entrySize <= 0 )
     return 0;
 
@@ -158,6 +162,8 @@ static int32_t
 zs_deflate_init ( ZIPstream *zstream, ZIPentry *zentry )
 {
   z_stream *zlstream;
+
+  (void)zstream; /* Avoid warning for unused parameter */
 
   /* Allocate ZLIB stream entry and store at private method pointer */
   zlstream = (z_stream *) calloc (1, sizeof(z_stream));
@@ -203,7 +209,9 @@ zs_deflate_process( ZIPstream *zstream, ZIPentry *zentry,
   int flush;
   int rv;
 
-  if ( ! zstream || ! zentry )
+  (void)zstream; /* Avoid warning for unused parameter */
+
+  if ( ! zentry )
     return -1;
 
   zlstream = zentry->methoddata;
@@ -260,6 +268,8 @@ zs_deflate_finish ( ZIPstream *zstream, ZIPentry *zentry )
   z_stream *zlstream = zentry->methoddata;
   int rv;
   int rc = 0;
+
+  (void)zstream; /* Avoid warning for unused parameter */
 
   rv = deflateEnd (zlstream);
 
