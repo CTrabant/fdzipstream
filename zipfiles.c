@@ -53,7 +53,6 @@ int main (int argc, char *argv[])
   FILE *input;
   struct stat st;
 
-  uint64_t readcount;
   uint64_t readsize;
 
   if ( argc < 2 )
@@ -136,11 +135,9 @@ int main (int argc, char *argv[])
         }
 
       /* Read file into buffer */
-      readcount = 0;
       while ( ! feof (input) )
         {
           readsize = fread (buffer, 1, bufferlength, input);
-          readcount += readsize;
 
           /* Add data to ZIP entry */
           if ( ! zs_entrydata (zstream, zentry, buffer, readsize, &writestatus) )
