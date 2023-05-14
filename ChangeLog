@@ -1,3 +1,6 @@
+2023.5.14:
+	- Cleanups for unused variable and parameter warnings.
+
 2019.11.14: 2.3
 	- Fix encoding of entry modification times on non-Windows, thanks @sreschke80.
 
