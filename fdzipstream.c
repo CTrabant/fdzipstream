@@ -93,7 +93,7 @@
 /* Allow this code to be skipped by declaring NOFDZIP */
 #ifndef NOFDZIP
 
-#define FDZIPVERSION 2.3
+#define FDZIPVERSION 2.4
 
 #include <assert.h>
 #include <stdio.h>

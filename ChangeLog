@@ -1,3 +1,8 @@
+2023.5.18: 2.4
+	From @sreschke80 (thanks!):
+	- Add NULL check for parameter writestatus in zs_entryend()
+	- Remove (redundant) NULL check for parameter name in zs_entrybegin()
+
 2023.5.14:
 	- Cleanups for unused variable and parameter warnings.
 
