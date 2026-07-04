@@ -947,7 +947,8 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   cdsize = zstream->WriteOffset - zstream->CentralDirectoryOffset;
 
   /* Add ZIP64 structures if offset to Central Directory or entry count is beyond limit */
-  zip64eocd = (zstream->CentralDirectoryOffset >= 0xFFFFFFFF || zstream->EntryCount >= 0xFFFF) ? 1 : 0;
+  zip64eocd =
+      (zstream->CentralDirectoryOffset >= 0xFFFFFFFF || zstream->EntryCount >= 0xFFFF) ? 1 : 0;
 
   if (zip64eocd)
   {
@@ -1005,18 +1006,19 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   /* Write End of Central Directory Record, packing into write buffer and swapped to little-endian
    * order */
   packed = 0;
-  zs_packunit32 (zstream, &packed, ENDHEADERSIG);        /* End of Central Dir signature */
-  zs_packunit16 (zstream, &packed, 0);                   /* Number of this disk */
-  zs_packunit16 (zstream, &packed, 0);                   /* Number of disk with CD */
+  zs_packunit32 (zstream, &packed, ENDHEADERSIG); /* End of Central Dir signature */
+  zs_packunit16 (zstream, &packed, 0);            /* Number of this disk */
+  zs_packunit16 (zstream, &packed, 0);            /* Number of disk with CD */
   zs_packunit16 (zstream, &packed,
-                 (zip64eocd) ? 0xFFFF : zstream->EntryCount); /* Number of entries in CD this disk */
+                 (zip64eocd) ? 0xFFFF
+                             : zstream->EntryCount); /* Number of entries in CD this disk */
   zs_packunit16 (zstream, &packed,
                  (zip64eocd) ? 0xFFFF : zstream->EntryCount); /* Number of entries in CD */
   zs_packunit32 (zstream, &packed, cdsize);                   /* Size of Central Directory */
   zs_packunit32 (zstream, &packed,
                  (zip64eocd) ? 0xFFFFFFFF
                              : zstream->CentralDirectoryOffset); /* Offset to start of CD */
-  zs_packunit16 (zstream, &packed, 0);                   /* ZIP file comment length */
+  zs_packunit16 (zstream, &packed, 0);                           /* ZIP file comment length */
 
   lwritestatus = zs_writedata (zstream, zstream->buffer, packed);
   if (lwritestatus != packed)
@@ -1101,11 +1103,17 @@ zs_datetime_unixtodos (time_t t)
   s.tm_year += 1900;
   s.tm_mon += 1;
 
-  return (((s.tm_year) < 1980)
-              ? DOSTIME_STARTDATE
-              : (((uint32_t)(s.tm_year) - 1980) << 25) | ((uint32_t)(s.tm_mon) << 21) |
-                    ((uint32_t)(s.tm_mday) << 16) | ((uint32_t)(s.tm_hour) << 11) |
-                    ((uint32_t)(s.tm_min) << 5) | ((uint32_t)(s.tm_sec) >> 1));
+  if (s.tm_year < 1980)
+    return DOSTIME_STARTDATE;
+
+  /* The DOS date format's year field is 7 bits wide, representing years
+   * 1980-2107 (1980 + 0..127); clamp later timestamps to the maximum */
+  if (s.tm_year > 2107)
+    s.tm_year = 2107;
+
+  return (((uint32_t)(s.tm_year) - 1980) << 25) | ((uint32_t)(s.tm_mon) << 21) |
+         ((uint32_t)(s.tm_mday) << 16) | ((uint32_t)(s.tm_hour) << 11) |
+         ((uint32_t)(s.tm_min) << 5) | ((uint32_t)(s.tm_sec) >> 1);
 }
 
 /***************************************************************************
