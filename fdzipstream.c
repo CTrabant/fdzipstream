@@ -840,7 +840,8 @@ zs_entryend (ZIPstream *zstream, ZIPentry *zentry, int64_t *writestatus)
  * Write end of ZIP archive structures (Central Directory, etc.).
  *
  * ZIP64 structures will be added to the Central Directory when the
- * total length of the archive exceeds 0xFFFFFFFF bytes.
+ * total length of the archive exceeds 0xFFFFFFFF bytes or the number
+ * of entries exceeds 0xFFFF.
  *
  * If specified, writestatus will be set to the output of write() when
  * a write error occurs, otherwise it will be set to 0.
@@ -857,6 +858,7 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   uint64_t cdsize;
   uint64_t zip64endrecord;
   int zip64 = 0;
+  int zip64eocd;
 
   if (writestatus)
     *writestatus = 0;
@@ -923,8 +925,10 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   /* Calculate size of Central Directory */
   cdsize = zstream->WriteOffset - zstream->CentralDirectoryOffset;
 
-  /* Add ZIP64 structures if offset to Central Directory is beyond limit */
-  if (zstream->CentralDirectoryOffset >= 0xFFFFFFFF)
+  /* Add ZIP64 structures if offset to Central Directory or entry count is beyond limit */
+  zip64eocd = (zstream->CentralDirectoryOffset >= 0xFFFFFFFF || zstream->EntryCount >= 0xFFFF) ? 1 : 0;
+
+  if (zip64eocd)
   {
     /* Note offset of ZIP64 End of Central Directory Record */
     zip64endrecord = zstream->WriteOffset;
@@ -983,13 +987,14 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   zs_packunit32 (zstream, &packed, ENDHEADERSIG);        /* End of Central Dir signature */
   zs_packunit16 (zstream, &packed, 0);                   /* Number of this disk */
   zs_packunit16 (zstream, &packed, 0);                   /* Number of disk with CD */
-  zs_packunit16 (zstream, &packed, zstream->EntryCount); /* Number of entries in CD this disk */
-  zs_packunit16 (zstream, &packed, zstream->EntryCount); /* Number of entries in CD */
-  zs_packunit32 (zstream, &packed, cdsize);              /* Size of Central Directory */
+  zs_packunit16 (zstream, &packed,
+                 (zip64eocd) ? 0xFFFF : zstream->EntryCount); /* Number of entries in CD this disk */
+  zs_packunit16 (zstream, &packed,
+                 (zip64eocd) ? 0xFFFF : zstream->EntryCount); /* Number of entries in CD */
+  zs_packunit32 (zstream, &packed, cdsize);                   /* Size of Central Directory */
   zs_packunit32 (zstream, &packed,
-                 (zstream->CentralDirectoryOffset >= 0xFFFFFFFF)
-                     ? 0xFFFFFFFF
-                     : zstream->CentralDirectoryOffset); /* Offset to start of CD */
+                 (zip64eocd) ? 0xFFFFFFFF
+                             : zstream->CentralDirectoryOffset); /* Offset to start of CD */
   zs_packunit16 (zstream, &packed, 0);                   /* ZIP file comment length */
 
   lwritestatus = zs_writedata (zstream, zstream->buffer, packed);
