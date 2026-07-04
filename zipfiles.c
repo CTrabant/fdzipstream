@@ -173,7 +173,8 @@ int main (int argc, char *argv[])
                zentry->Name,
                (long long int) zentry->UncompressedSize,
                (long long int) zentry->CompressedSize,
-               (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
+               (zentry->UncompressedSize) ?
+                 (100.0 * zentry->CompressedSize / zentry->UncompressedSize) : 0.0);
 
       fclose (input);
     } /* Done looping over input files */

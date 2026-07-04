@@ -102,7 +102,8 @@ int main (int argc, char *argv[])
            zentry->Name,
            (long long int) zentry->UncompressedSize,
            (long long int) zentry->CompressedSize,
-           (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
+           (zentry->UncompressedSize) ?
+             (100.0 * zentry->CompressedSize / zentry->UncompressedSize) : 0.0);
 
   /* Write another entry containing the same buffer contents */
   zentry = zs_writeentry (zstream, (unsigned char *)buffer, buffersize,
@@ -119,7 +120,8 @@ int main (int argc, char *argv[])
            zentry->Name,
            (long long int) zentry->UncompressedSize,
            (long long int) zentry->CompressedSize,
-           (100.0 * zentry->CompressedSize / zentry->UncompressedSize));
+           (zentry->UncompressedSize) ?
+             (100.0 * zentry->CompressedSize / zentry->UncompressedSize) : 0.0);
 
   /* Many more files/entries can be added to the ZIP archive ... */
 
