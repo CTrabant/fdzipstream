@@ -574,6 +574,13 @@ zs_entrybegin (ZIPstream *zstream, char *name, time_t modtime, int methodID, int
   if (!zstream || !name)
     return NULL;
 
+  if (strlen (name) >= ZENTRY_NAME_LENGTH)
+  {
+    fprintf (stderr, "zs_entrybegin(%s): Entry name is too long, cannot exceed %d bytes\n", name,
+             ZENTRY_NAME_LENGTH - 1);
+    return NULL;
+  }
+
   /* Search for method ID */
   method = zstream->firstMethod;
   while (method)
@@ -608,7 +615,7 @@ zs_entrybegin (ZIPstream *zstream, char *name, time_t modtime, int methodID, int
   zentry->CompressedSize = 0;
   zentry->UncompressedSize = 0;
   zentry->LocalHeaderOffset = zstream->WriteOffset;
-  strncpy (zentry->Name, name, ZENTRY_NAME_LENGTH - 1);
+  strcpy (zentry->Name, name);
   zentry->NameLength = strlen (zentry->Name);
   zentry->method = method;
   zentry->methoddata = NULL;

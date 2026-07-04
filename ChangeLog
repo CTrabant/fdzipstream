@@ -3,7 +3,9 @@
 	- Unlink failed entries so zs_finish() cannott emit a corrupt archive.
 	- Fix off-by-one in ZIP64 threshold, exactly-4GB sizes trigger ZIP64.
 	- Trigger ZIP64 end-of-central-directory when entry count exceeds 0xFFFF
-	so the classic EOCD count field can't silently wrap
+	so the classic EOCD count field cannot silently wrap.
+	- Reject entry names that do not fit in the 255-byte name buffer instead
+	of silently truncating them.
 
 2023.5.18: 2.4
 	From @sreschke80 (thanks!):
