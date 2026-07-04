@@ -408,13 +408,13 @@ zs_init (int fd, ZIPstream *zs)
   /* Register the included ZS_STORE and ZS_DEFLATE compression methods */
   if (!zs_registermethod (zs, ZS_STORE, NULL, zs_store_process, NULL))
   {
-    free (zs);
+    zs_free (zs);
     return NULL;
   }
 
   if (!zs_registermethod (zs, ZS_DEFLATE, zs_deflate_init, zs_deflate_process, zs_deflate_finish))
   {
-    free (zs);
+    zs_free (zs);
     return NULL;
   }
 

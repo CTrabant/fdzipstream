@@ -7,6 +7,8 @@
 	- Reject entry names that do not fit in the 255-byte name buffer instead
 	of silently truncating them.
 	- Guard zs_registermethod() against a NULL ZIPstream.
+	- Use zs_free() instead of a bare free() in zs_init()'s error path so an
+	already-registered method is not leaked when a later registration fails.
 	- Fix file reading error path and other sharp edges in example programs.
 
 2023.5.18: 2.4
