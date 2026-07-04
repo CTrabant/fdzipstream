@@ -107,6 +107,15 @@
 
 #include "fdzipstream.h"
 
+/* MAX_MEM_LEVEL, tested below, is defined by zlib's zconf.h, included above */
+#ifndef DEF_MEM_LEVEL
+#if MAX_MEM_LEVEL >= 8
+#define DEF_MEM_LEVEL 8
+#else
+#define DEF_MEM_LEVEL MAX_MEM_LEVEL
+#endif
+#endif
+
 #define BIT_SET(a, b) ((a) |= (1 << (b)))
 
 static int64_t zs_writedata (ZIPstream *zstream, uint8_t *writeBuffer, int64_t writeBufferSize);

@@ -14,14 +14,6 @@ extern "C"
 {
 #endif
 
-#ifndef DEF_MEM_LEVEL
-#if MAX_MEM_LEVEL >= 8
-#define DEF_MEM_LEVEL 8
-#else
-#define DEF_MEM_LEVEL MAX_MEM_LEVEL
-#endif
-#endif
-
 /* ZIP record type signatures */
 #define LOCALHEADERSIG (0x04034b50)
 #define DATADESCRIPTIONSIG (0x08074b50)
