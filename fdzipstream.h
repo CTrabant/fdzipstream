@@ -6,32 +6,33 @@
 #define FDZIPSTREAM_H
 
 #include <stdint.h>
-#include <time.h>
 #include <sys/types.h>
+#include <time.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #ifndef DEF_MEM_LEVEL
-#  if MAX_MEM_LEVEL >= 8
-#    define DEF_MEM_LEVEL 8
-#  else
-#    define DEF_MEM_LEVEL MAX_MEM_LEVEL
-#  endif
+#if MAX_MEM_LEVEL >= 8
+#define DEF_MEM_LEVEL 8
+#else
+#define DEF_MEM_LEVEL MAX_MEM_LEVEL
+#endif
 #endif
 
 /* ZIP record type signatures */
-#define LOCALHEADERSIG      (0x04034b50)
-#define DATADESCRIPTIONSIG  (0x08074b50)
-#define CENTRALHEADERSIG    (0x02014b50)
-#define ZIP64ENDRECORDSIG   (0x06064b50)
-#define ZIP64ENDLOCATORSIG  (0x07064b50)
-#define ENDHEADERSIG        (0x06054b50)
+#define LOCALHEADERSIG (0x04034b50)
+#define DATADESCRIPTIONSIG (0x08074b50)
+#define CENTRALHEADERSIG (0x02014b50)
+#define ZIP64ENDRECORDSIG (0x06064b50)
+#define ZIP64ENDLOCATORSIG (0x07064b50)
+#define ENDHEADERSIG (0x06054b50)
 
 /* Compression methods, match ZIP specification */
-#define ZS_STORE      0
-#define ZS_DEFLATE    8
+#define ZS_STORE 0
+#define ZS_DEFLATE 8
 
 /* Maximum single size to write(), 1 MiB */
 #define ZS_WRITE_SIZE 1048576
@@ -56,8 +57,8 @@ typedef struct zipentry_s
   uint64_t LocalHeaderOffset;
   uint16_t NameLength;
   char Name[ZENTRY_NAME_LENGTH];
-  struct zipmethod_s *method;    /* Pointer to compression method entry */
-  void *methoddata;              /* A private pointer for method data */
+  struct zipmethod_s *method; /* Pointer to compression method entry */
+  void *methoddata;           /* A private pointer for method data */
   struct zipentry_s *next;
 } ZIPentry;
 
@@ -74,48 +75,39 @@ typedef struct zipstream_s
   uint8_t buffer[ZS_BUFFER_SIZE];
 } ZIPstream;
 
-
 /* List of ZIP method (compression) implementations */
 typedef struct zipmethod_s
 {
   int32_t ID;
-  int32_t (*init)( ZIPstream *zstream, ZIPentry *zentry );
-  int32_t (*process)( ZIPstream *zstream, ZIPentry *zentry,
-                      uint8_t *entry, int64_t entrySize, int64_t *entryConsumed,
-                      uint8_t* writeBuffer, int64_t writeBufferSize );
-  int32_t (*finish)( ZIPstream *zstream, ZIPentry *zentry );
-  struct zipmethod_s* next;
+  int32_t (*init) (ZIPstream *zstream, ZIPentry *zentry);
+  int32_t (*process) (ZIPstream *zstream, ZIPentry *zentry, uint8_t *entry, int64_t entrySize,
+                      int64_t *entryConsumed, uint8_t *writeBuffer, int64_t writeBufferSize);
+  int32_t (*finish) (ZIPstream *zstream, ZIPentry *zentry);
+  struct zipmethod_s *next;
 } ZIPmethod;
 
+extern ZIPmethod *zs_registermethod (ZIPstream *zs, int32_t methodID,
+                                     int32_t (*init) (ZIPstream *, ZIPentry *),
+                                     int32_t (*process) (ZIPstream *, ZIPentry *, uint8_t *,
+                                                         int64_t, int64_t *, uint8_t *, int64_t),
+                                     int32_t (*finish) (ZIPstream *, ZIPentry *));
 
-extern  ZIPmethod * zs_registermethod ( ZIPstream *zs, int32_t methodID,
-                                        int32_t (*init)( ZIPstream*, ZIPentry* ),
-                                        int32_t (*process)( ZIPstream*, ZIPentry*,
-                                                            uint8_t*, int64_t, int64_t*,
-                                                            uint8_t*, int64_t ),
-                                        int32_t (*finish)( ZIPstream*, ZIPentry* )
-                                        );
+extern ZIPstream *zs_init (int fd, ZIPstream *zs);
 
-extern ZIPstream * zs_init ( int fd, ZIPstream *zs );
+extern void zs_free (ZIPstream *zs);
 
-extern void zs_free ( ZIPstream *zs );
+extern ZIPentry *zs_writeentry (ZIPstream *zstream, uint8_t *entry, int64_t entrySize, char *name,
+                                time_t modtime, int methodID, int64_t *writestatus);
 
-extern ZIPentry * zs_writeentry ( ZIPstream *zstream, uint8_t *entry, int64_t entrySize,
-                                  char *name, time_t modtime, int methodID, int64_t *writestatus );
-
-extern ZIPentry * zs_entrybegin ( ZIPstream *zstream, char *name,
-                                  time_t modtime, int methodID,
-                                  int64_t *writestatus );
-
-extern ZIPentry * zs_entrydata ( ZIPstream *zstream, ZIPentry *zentry,
-                                 uint8_t *entry, int64_t entrySize,
-                                 int64_t *writestatus );
-
-extern ZIPentry * zs_entryend ( ZIPstream *zstream, ZIPentry *zentry,
+extern ZIPentry *zs_entrybegin (ZIPstream *zstream, char *name, time_t modtime, int methodID,
                                 int64_t *writestatus);
 
-extern int zs_finish ( ZIPstream *zstream, int64_t *writestatus );
+extern ZIPentry *zs_entrydata (ZIPstream *zstream, ZIPentry *zentry, uint8_t *entry,
+                               int64_t entrySize, int64_t *writestatus);
 
+extern ZIPentry *zs_entryend (ZIPstream *zstream, ZIPentry *zentry, int64_t *writestatus);
+
+extern int zs_finish (ZIPstream *zstream, int64_t *writestatus);
 
 #ifdef __cplusplus
 }
@@ -124,4 +116,3 @@ extern int zs_finish ( ZIPstream *zstream, int64_t *writestatus );
 #endif /* FDZIPSTREAM_H */
 
 #endif /* NOFDZIP */
-
