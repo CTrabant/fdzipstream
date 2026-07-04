@@ -310,7 +310,10 @@ zs_registermethod (ZIPstream *zs, int32_t methodID, int32_t (*init) (ZIPstream *
                                        uint8_t *, int64_t),
                    int32_t (*finish) (ZIPstream *, ZIPentry *))
 {
-  ZIPmethod *method = zs->firstMethod;
+  ZIPmethod *method;
+
+  if (!zs)
+    return NULL;
 
   /* Require a process() callback for the method */
   if (!process)
@@ -318,6 +321,8 @@ zs_registermethod (ZIPstream *zs, int32_t methodID, int32_t (*init) (ZIPstream *
     fprintf (stderr, "Compression method (%d) must provide a process() callback\n", methodID);
     return NULL;
   }
+
+  method = zs->firstMethod;
 
   /* Search for existing method */
   while (method)
