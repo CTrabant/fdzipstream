@@ -1,3 +1,7 @@
+2026.4.4:
+	- Add test and clean failure for zip entries beyond 4GB.
+	- Unlink failed entries so zs_finish() cannott emit a corrupt archive.
+
 2023.5.18: 2.4
 	From @sreschke80 (thanks!):
 	- Add NULL check for parameter writestatus in zs_entryend()

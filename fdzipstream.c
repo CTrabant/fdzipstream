@@ -114,6 +114,7 @@ static uint32_t zs_datetime_unixtodos (time_t t);
 static void zs_packunit16 (ZIPstream *ZS, int *O, uint16_t V);
 static void zs_packunit32 (ZIPstream *ZS, int *O, uint32_t V);
 static void zs_packunit64 (ZIPstream *ZS, int *O, uint64_t V);
+static void zs_unlinkentry (ZIPstream *zstream, ZIPentry *zentry, ZIPentry *prevEntry);
 
 /***************************************************************************
  * zs_store_process:
@@ -509,6 +510,36 @@ zs_writeentry (ZIPstream *zstream, uint8_t *entry, int64_t entrySize, char *name
 } /* End of zs_writeentry() */
 
 /***************************************************************************
+ * zs_unlinkentry:
+ *
+ * Remove zentry, the current ZIPstream.LastEntry, from the stream's
+ * entry list and free it.  Used to back out of adding an entry when
+ * a later initialization step fails, so a partially-initialized entry
+ * is never left for zs_finish() to include in the Central Directory.
+ *
+ * prevEntry must be the entry that was ZIPstream.LastEntry before
+ * zentry was appended, or NULL if zentry was the first entry added.
+ ***************************************************************************/
+static void
+zs_unlinkentry (ZIPstream *zstream, ZIPentry *zentry, ZIPentry *prevEntry)
+{
+  if (prevEntry)
+  {
+    prevEntry->next = NULL;
+    zstream->LastEntry = prevEntry;
+  }
+  else
+  {
+    zstream->FirstEntry = NULL;
+    zstream->LastEntry = NULL;
+  }
+
+  zstream->EntryCount--;
+
+  free (zentry);
+} /* End of zs_unlinkentry() */
+
+/***************************************************************************
  * zs_entrybegin:
  *
  * Begin a streaming entry by writing a Local File Header to the
@@ -531,6 +562,7 @@ ZIPentry *
 zs_entrybegin (ZIPstream *zstream, char *name, time_t modtime, int methodID, int64_t *writestatus)
 {
   ZIPentry *zentry;
+  ZIPentry *prevEntry;
   ZIPmethod *method;
   int64_t lwritestatus;
   int32_t packed;
@@ -581,7 +613,10 @@ zs_entrybegin (ZIPstream *zstream, char *name, time_t modtime, int methodID, int
   zentry->method = method;
   zentry->methoddata = NULL;
 
-  /* Add new entry to stream list */
+  /* Add new entry to stream list, remembering the prior last entry so this
+   * one can be unlinked again if a later step in this function fails */
+  prevEntry = zstream->LastEntry;
+
   if (!zstream->FirstEntry)
   {
     zstream->FirstEntry = zentry;
@@ -602,6 +637,7 @@ zs_entrybegin (ZIPstream *zstream, char *name, time_t modtime, int methodID, int
   if (zentry->method->init && zentry->method->init (zstream, zentry))
   {
     fprintf (stderr, "Error with method (%d) init callback\n", zentry->method->ID);
+    zs_unlinkentry (zstream, zentry, prevEntry);
     return NULL;
   }
 
@@ -630,6 +666,7 @@ zs_entrybegin (ZIPstream *zstream, char *name, time_t modtime, int methodID, int
     if (writestatus)
       *writestatus = lwritestatus;
 
+    zs_unlinkentry (zstream, zentry, prevEntry);
     return NULL;
   }
 
