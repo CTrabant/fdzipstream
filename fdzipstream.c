@@ -481,10 +481,10 @@ zs_writeentry (ZIPstream *zstream, uint8_t *entry, int64_t entrySize, char *name
   if (!zstream)
     return NULL;
 
-  if (entrySize > 0xFFFFFFFF)
+  if (entrySize >= 0xFFFFFFFF)
   {
     fprintf (stderr, "zs_writeentry(%s): Individual entries cannot exceed %lld bytes\n",
-             (name) ? name : "", (long long)0xFFFFFFFF);
+             (name) ? name : "", (long long)0xFFFFFFFE);
     return NULL;
   }
 
@@ -730,12 +730,12 @@ zs_entrydata (ZIPstream *zstream, ZIPentry *zentry, uint8_t *entry, int64_t entr
 
     zentry->CompressedSize += writeSize;
 
-    if (zentry->CompressedSize > 0xFFFFFFFF)
+    if (zentry->CompressedSize >= 0xFFFFFFFF)
     {
       fprintf (stderr,
                "zs_entrydata(%s): Compressed entry size exceeds %lld bytes, "
                "individual entries cannot exceed this size\n",
-               zentry->Name, (long long)0xFFFFFFFF);
+               zentry->Name, (long long)0xFFFFFFFE);
       return NULL;
     }
 
@@ -759,12 +759,12 @@ zs_entrydata (ZIPstream *zstream, ZIPentry *zentry, uint8_t *entry, int64_t entr
   {
     zentry->UncompressedSize += entrySize;
 
-    if (zentry->UncompressedSize > 0xFFFFFFFF)
+    if (zentry->UncompressedSize >= 0xFFFFFFFF)
     {
       fprintf (stderr,
                "zs_entrydata(%s): Uncompressed entry size exceeds %lld bytes, "
                "individual entries cannot exceed this size\n",
-               zentry->Name, (long long)0xFFFFFFFF);
+               zentry->Name, (long long)0xFFFFFFFE);
       return NULL;
     }
   }
@@ -870,7 +870,7 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   zentry = zstream->FirstEntry;
   while (zentry)
   {
-    zip64 = (zentry->LocalHeaderOffset > 0xFFFFFFFF) ? 1 : 0;
+    zip64 = (zentry->LocalHeaderOffset >= 0xFFFFFFFF) ? 1 : 0;
 
     /* Write Central Directory Header, packing into write buffer and swapped to little-endian order
      */
@@ -924,7 +924,7 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   cdsize = zstream->WriteOffset - zstream->CentralDirectoryOffset;
 
   /* Add ZIP64 structures if offset to Central Directory is beyond limit */
-  if (zstream->CentralDirectoryOffset > 0xFFFFFFFF)
+  if (zstream->CentralDirectoryOffset >= 0xFFFFFFFF)
   {
     /* Note offset of ZIP64 End of Central Directory Record */
     zip64endrecord = zstream->WriteOffset;
@@ -987,7 +987,7 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   zs_packunit16 (zstream, &packed, zstream->EntryCount); /* Number of entries in CD */
   zs_packunit32 (zstream, &packed, cdsize);              /* Size of Central Directory */
   zs_packunit32 (zstream, &packed,
-                 (zstream->CentralDirectoryOffset > 0xFFFFFFFF)
+                 (zstream->CentralDirectoryOffset >= 0xFFFFFFFF)
                      ? 0xFFFFFFFF
                      : zstream->CentralDirectoryOffset); /* Offset to start of CD */
   zs_packunit16 (zstream, &packed, 0);                   /* ZIP file comment length */

@@ -1,6 +1,7 @@
 2026.4.4:
 	- Add test and clean failure for zip entries beyond 4GB.
 	- Unlink failed entries so zs_finish() cannott emit a corrupt archive.
+	- Fix off-by-one in ZIP64 threshold, exactly-4GB sizes trigger ZIP64.
 
 2023.5.18: 2.4
 	From @sreschke80 (thanks!):
