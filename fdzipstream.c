@@ -693,6 +693,15 @@ zs_entrydata (ZIPstream *zstream, ZIPentry *zentry, uint8_t *entry, int64_t entr
 
     zentry->CompressedSize += writeSize;
 
+    if (zentry->CompressedSize > 0xFFFFFFFF)
+    {
+      fprintf (stderr,
+               "zs_entrydata(%s): Compressed entry size exceeds %lld bytes, "
+               "individual entries cannot exceed this size\n",
+               zentry->Name, (long long)0xFFFFFFFF);
+      return NULL;
+    }
+
     if (entry)
     {
       entry += consumed;
@@ -712,6 +721,15 @@ zs_entrydata (ZIPstream *zstream, ZIPentry *zentry, uint8_t *entry, int64_t entr
   if (entry)
   {
     zentry->UncompressedSize += entrySize;
+
+    if (zentry->UncompressedSize > 0xFFFFFFFF)
+    {
+      fprintf (stderr,
+               "zs_entrydata(%s): Uncompressed entry size exceeds %lld bytes, "
+               "individual entries cannot exceed this size\n",
+               zentry->Name, (long long)0xFFFFFFFF);
+      return NULL;
+    }
   }
 
   return zentry;
