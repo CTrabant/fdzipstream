@@ -10,6 +10,7 @@
 	- Use zs_free() instead of a bare free() in zs_init()'s error path so an
 	already-registered method is not leaked when a later registration fails.
 	- Limit DOS date/time year field at 2107 to prevent overflow.
+	- Set Central Directory "version needed" to 45 for entries with ZIP64 extra field.
 	- Fix file reading error path and other sharp edges in example programs.
 
 2023.5.18: 2.4

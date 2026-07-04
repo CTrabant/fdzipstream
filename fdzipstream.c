@@ -895,12 +895,13 @@ zs_finish (ZIPstream *zstream, int64_t *writestatus)
   {
     zip64 = (zentry->LocalHeaderOffset >= 0xFFFFFFFF) ? 1 : 0;
 
-    /* Write Central Directory Header, packing into write buffer and swapped to little-endian order
-     */
+    /* Write Central Directory Header, packing into write buffer and swap to little-endian order */
     packed = 0;
-    zs_packunit32 (zstream, &packed, CENTRALHEADERSIG);          /* Central File Header signature */
-    zs_packunit16 (zstream, &packed, 0);                         /* Version made by */
-    zs_packunit16 (zstream, &packed, zentry->ZipVersion);        /* Version needed to extract */
+    zs_packunit32 (zstream, &packed, CENTRALHEADERSIG); /* Central File Header signature */
+    zs_packunit16 (zstream, &packed, 0);                /* Version made by */
+    zs_packunit16 (zstream, &packed,
+                   (zip64) ? ((zentry->ZipVersion < 45) ? 45 : zentry->ZipVersion)
+                           : zentry->ZipVersion);                /* Version needed to extract */
     zs_packunit16 (zstream, &packed, zentry->GeneralFlag);       /* General purpose bit flag */
     zs_packunit16 (zstream, &packed, zentry->CompressionMethod); /* Compression method */
     zs_packunit16 (zstream, &packed, zentry->DOSTime);           /* DOS file modification time */
