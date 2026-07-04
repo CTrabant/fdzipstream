@@ -75,7 +75,7 @@
  ****
  * LICENSE
  *
- * Copyright 2019 CTrabant
+ * Copyright 2026 CTrabant
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,7 +95,6 @@
 
 #define FDZIPVERSION 2.4
 
-#include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdint.h>

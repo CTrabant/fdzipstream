@@ -16,8 +16,16 @@ zipexample: fdzipstream.c zipexample.c
 	$(CC) $(CFLAGS) -o zipexample fdzipstream.c zipexample.c -lz
 
 zipfiles: fdzipstream.c zipfiles.c
-	$(CC) $(CFLAGS) -o zipfiles fdzipstream.c zipfiles.c -lz 
+	$(CC) $(CFLAGS) -o zipfiles fdzipstream.c zipfiles.c -lz
+
+test_fdzipstream: fdzipstream.h fdzipstream.c test_fdzipstream.c
+	$(CC) $(CFLAGS) -o test_fdzipstream fdzipstream.c test_fdzipstream.c -lz
+
+test: test_fdzipstream
+	./test_fdzipstream
+
+check: test
 
 clean:
-	rm -f zipexample zipfiles
+	rm -f zipexample zipfiles test_fdzipstream
 
