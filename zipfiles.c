@@ -134,11 +134,9 @@ int main (int argc, char *argv[])
           return 1;
         }
 
-      /* Read file into buffer */
-      while ( ! feof (input) )
+      /* Read file into buffer and add to ZIP entry until EOF or a read error */
+      while ( (readsize = fread (buffer, 1, bufferlength, input)) > 0 )
         {
-          readsize = fread (buffer, 1, bufferlength, input);
-
           /* Add data to ZIP entry */
           if ( ! zs_entrydata (zstream, zentry, buffer, readsize, &writestatus) )
             {
@@ -149,6 +147,15 @@ int main (int argc, char *argv[])
                        argv[idx], (long long int) writestatus);
               return 1;
             }
+        }
+
+      if ( ferror (input) )
+        {
+          zs_free (zstream);
+          free (buffer);
+          fclose(input);
+          fprintf (stderr, "Error reading %s: %s\n", argv[idx], strerror(errno));
+          return 1;
         }
 
       /* End ZIP entry */

@@ -6,6 +6,7 @@
 	so the classic EOCD count field cannot silently wrap.
 	- Reject entry names that do not fit in the 255-byte name buffer instead
 	of silently truncating them.
+	- Fix file reading error path in zipfiles.c example.
 
 2023.5.18: 2.4
 	From @sreschke80 (thanks!):
