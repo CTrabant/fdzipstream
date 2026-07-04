@@ -27,4 +27,4 @@ zipfiles.exe: zipfiles.obj fdzipstream.obj
 
 # Clean-up directives
 clean:
-	-del a.out core *.o *.obj *% *~ $(BINS)
+	-del *.obj $(BINS)

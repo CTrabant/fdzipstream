@@ -1,4 +1,4 @@
-2026.4.4:
+2026.4.4: 2.5
 	- Add test and clean failure for zip entries beyond 4GB.
 	- Unlink failed entries so zs_finish() cannott emit a corrupt archive.
 	- Fix off-by-one in ZIP64 threshold, exactly-4GB sizes trigger ZIP64.
@@ -11,6 +11,8 @@
 	already-registered method is not leaked when a later registration fails.
 	- Limit DOS date/time year field at 2107 to prevent overflow.
 	- Set Central Directory "version needed" to 45 for entries with ZIP64 extra field.
+	- Add simple test suite.
+	- Improve Windows/MSVC portability.
 	- Fix file reading error path and other sharp edges in example programs.
 
 2023.5.18: 2.4

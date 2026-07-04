@@ -30,6 +30,7 @@
 
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
   #include <fcntl.h>
+  #include <io.h>
 #endif
 
 #include "fdzipstream.h"

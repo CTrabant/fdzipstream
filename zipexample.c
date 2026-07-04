@@ -28,6 +28,11 @@
 #include <time.h>
 #include <errno.h>
 
+#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+  #include <fcntl.h>
+  #include <io.h>
+#endif
+
 #include "fdzipstream.h"
 
 char buffer[200] = "They're just questions, Leon. In answer to your query, they're written down for me. It's a test, designed to provoke an emotional response... Shall we continue?";
@@ -73,6 +78,11 @@ int main (int argc, char *argv[])
           continue;
         }
     }
+
+  /* Set stdout to binary mode for Windows platforms */
+  #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+  _setmode( _fileno( stdout ), _O_BINARY );
+  #endif
 
   /* Set output stream to stdout */
   fd = fileno (stdout);

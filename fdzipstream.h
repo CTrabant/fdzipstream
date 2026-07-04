@@ -9,6 +9,15 @@
 #include <sys/types.h>
 #include <time.h>
 
+/* Platform specicific: Windows/MSVC versus Unix-like */
+#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+#include <io.h>
+#define fileno _fileno
+#define write _write
+#else
+#include <unistd.h>
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {

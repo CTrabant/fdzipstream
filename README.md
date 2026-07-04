@@ -5,7 +5,7 @@ descriptor.  The output stream (file descriptor) does not need to be
 seekable and can be a pipe or a network socket.  The entire archive
 contents does not need to be in memory at once.
 
-[zlib](http://www.zlib.net/) is required for deflate compression: http://www.zlib.net/
+[zlib](http://www.zlib.net/) is required.
 
 ## What this will do for you:
 
@@ -21,7 +21,7 @@ contents does not need to be in memory at once.
 - Allow archiving of individual files/entries larger than 4GB, the total
    of all files can be larger than 4GB but not individual entries.
 
-ZIP archive file/entry modifiation times are stored in UTC.
+ZIP archive file/entry modification times are stored in UTC.
 
 ## Usage pattern
 
@@ -46,6 +46,18 @@ zs_finish ()
 zs_free ()
 ```
 
+## Building
+
+Build the library and example programs with:
+```
+make
+```
+
+Run the test suite with:
+```
+make test
+```
+
 ## Why?
 
 Libraries such as libarchive (http://www.libarchive.org/) can create
@@ -57,5 +69,5 @@ be used to write to a socket or pipe.  I also needed a portable
 solution.  This code depends only on zlib, which is itself very
 portable and commonly found in the base installation on many systems.
 
-Simple ZIP archive creation in about 1000 lines of code, ready to be
+Simple ZIP archive creation in about 1300 lines of code, ready to be
 embedded.

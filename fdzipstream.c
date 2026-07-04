@@ -93,7 +93,7 @@
 /* Allow this code to be skipped by declaring NOFDZIP */
 #ifndef NOFDZIP
 
-#define FDZIPVERSION 2.4
+#define FDZIPVERSION 2.5
 
 #include <errno.h>
 #include <inttypes.h>
@@ -1180,26 +1180,31 @@ zs_htolx (void *data, int size)
  * Helper functions to write little-endian integer values to a
  * specified offset in the ZIPstream buffer and increment offset.
  *
+ * The value is byte-swapped (if needed) in the local, naturally-
+ * aligned parameter before being copied into the buffer, since the
+ * destination offset is not guaranteed to be aligned (e.g. it may
+ * follow a variable-length entry name).
+ *
  ***************************************************************************/
 static void
 zs_packunit16 (ZIPstream *ZS, int *O, uint16_t V)
 {
+  zs_htolx (&V, 2);
   memcpy (ZS->buffer + *O, &V, 2);
-  zs_htolx (ZS->buffer + *O, 2);
   *O += 2;
 }
 static void
 zs_packunit32 (ZIPstream *ZS, int *O, uint32_t V)
 {
+  zs_htolx (&V, 4);
   memcpy (ZS->buffer + *O, &V, 4);
-  zs_htolx (ZS->buffer + *O, 4);
   *O += 4;
 }
 static void
 zs_packunit64 (ZIPstream *ZS, int *O, uint64_t V)
 {
+  zs_htolx (&V, 8);
   memcpy (ZS->buffer + *O, &V, 8);
-  zs_htolx (ZS->buffer + *O, 8);
   *O += 8;
 }
 
